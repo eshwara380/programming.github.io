@@ -82,7 +82,7 @@ cnv.parent('column-two')
   
   bg=loadImage('assets/floor1.png');
     // Create a circle at the top-left corner
-    circle = new Circle(50, 50, 20);
+    circle = new Circle(50, 50, 10);
 
     startTime = millis(); // Start the timer
 
@@ -129,13 +129,13 @@ function draw() {
 
 function keyPressed() {
     if (keyCode === LEFT_ARROW) {
-        player.move(-5, 0); // Move left
+        player.move(-10, 0); // Move left
     } else if (keyCode === RIGHT_ARROW) {
-        player.move(5, 0); // Move right
+        player.move(10, 0); // Move right
     } else if (keyCode === UP_ARROW) {
-        player.move(0, -5); // Move up
+        player.move(0, -10); // Move up
     } else if (keyCode === DOWN_ARROW) {
-        player.move(0, 5); // Move down
+        player.move(0, 10); // Move down
     }
 }
 
@@ -157,8 +157,8 @@ class Player {
     constructor() {
         this.x = width / 2;
         this.y = height / 2;
-        this.width = 40; // Adjust the width of the player image
-        this.height = 40; // Adjust the height of the player image
+        this.width = 10; // Adjust the width of the player image
+        this.height = 15; // Adjust the height of the player image
         this.image = playerImage; // Initialize with the default image
     }
 
