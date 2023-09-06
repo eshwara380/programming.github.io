@@ -83,3 +83,24 @@ header {
 
 
 /*  MEDIA QUERIES --- (RESPONSIVE) ------------------------------------------------ */
+
+@media screen and (max-width: 800px) {
+
+  #main-container {
+    display: none;
+  }
+
+  #alert {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+  } 
+
+  #alert > h2 {
+    text-align: center;
+  }
+}
+
