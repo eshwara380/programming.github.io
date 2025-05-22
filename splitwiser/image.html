@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Expense Splitter - ₹ (with OCR)</title>
+    <title>Group Expense Splitter - ₹ (with OpenAI OCR)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5g+e9iwTgUBG/z5wsC+wL3QAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -28,7 +28,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border-left-color: #09f;
+            border-left-color: #09f; /* OpenAI-ish blue */
             animation: spin 1s ease infinite;
             margin: 1rem auto;
         }
@@ -43,34 +43,39 @@
     <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-2xl">
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-sky-600">🍽️ Group Expense Splitter (₹)</h1>
-            <p class="text-slate-500 mt-2">Split expenses manually or upload a bill image for OCR extraction!</p>
+            <p class="text-slate-500 mt-2">Split expenses manually or upload a bill image for OpenAI OCR extraction!</p>
         </header>
 
         <div id="customAlertModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="closeModal('customAlertModal')">&times;</span><p id="modalMessageText" class="text-lg text-slate-700 mb-4"></p><button onclick="closeModal('customAlertModal')" class="mt-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg transition">OK</button></div></div>
         <div id="imagePreviewModal" class="modal"><div id="imagePreviewModalContent" class="modal-content"><span class="modal-close" onclick="closeModal('imagePreviewModal')">&times;</span><h3 class="text-xl font-semibold text-sky-700 mb-3">Generated Split Image</h3><p class="text-sm text-slate-600 mb-3">Right-click/long-press to copy or save.</p><img id="generatedImagePreview" src="#" alt="Generated Split Preview"><div class="mt-6"><button id="downloadImageBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition mr-2">Download</button><button onclick="closeModal('imagePreviewModal')" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg transition">Close</button></div></div></div>
-        <div id="loadingModal" class="modal"><div class="modal-content"><p class="text-lg text-slate-700 mb-2">Processing Bill Image...</p><div class="spinner"></div><p class="text-sm text-slate-500">This may take a moment.</p></div></div>
+        <div id="loadingModal" class="modal"><div class="modal-content"><p id="loadingModalText" class="text-lg text-slate-700 mb-2">Processing Bill Image...</p><div class="spinner"></div><p class="text-sm text-slate-500">This may take a moment.</p></div></div>
 
         <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
             <h2 class="text-2xl font-semibold text-sky-700 mb-4">👥 Group Members</h2>
-            <div class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border rounded-lg focus:ring-2 focus:ring-sky-500"><button onclick="addFriend()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Friend</button></div>
-            <div id="friendsListDisplay" class="text-slate-600"><p class="font-medium">Current Group:</p><div id="friendsTags" class="flex flex-wrap gap-2 mt-1"></div></div>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"><button onclick="addFriend()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 whitespace-nowrap">Add Friend</button></div>
+            <div id="friendsListDisplay" class="text-slate-600 space-y-1"><p class="font-medium">Current Group:</p><div id="friendsTags" class="flex flex-wrap gap-2 mt-1"></div></div>
         </section>
 
         <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
             <h2 class="text-2xl font-semibold text-sky-700 mb-4">💰 Bill & Discount</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><label for="totalBillInput" class="block text-sm font-medium text-slate-700 mb-1">Total Bill Amount (₹):</label><input type="number" id="totalBillInput" placeholder="0.00" step="0.01" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-sky-500"></div>
-                <div><label for="discountValueInput" class="block text-sm font-medium text-slate-700 mb-1">Discount:</label><div class="flex gap-2"><input type="number" id="discountValueInput" placeholder="e.g., 100 or 10" step="0.01" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-sky-500"><select id="discountTypeSelect" class="p-3 border rounded-lg bg-white focus:ring-2 focus:ring-sky-500"><option value="amount">₹</option><option value="percentage">%</option></select></div><p class="text-xs text-slate-500 mt-1">Applied to itemized costs.</p></div>
+                <div><label for="totalBillInput" class="block text-sm font-medium text-slate-700 mb-1">Total Bill Amount (₹):</label><input type="number" id="totalBillInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></div>
+                <div><label for="discountValueInput" class="block text-sm font-medium text-slate-700 mb-1">Discount:</label><div class="flex gap-2"><input type="number" id="discountValueInput" placeholder="e.g., 100 or 10" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"><select id="discountTypeSelect" class="p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"><option value="amount">₹ (Amount)</option><option value="percentage">% (Percentage)</option></select></div><p class="text-xs text-slate-500 mt-1">Applied to itemized costs.</p></div>
             </div>
         </section>
 
         <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
-            <h2 class="text-2xl font-semibold text-sky-700 mb-4">📄 Upload Bill for OCR (Optional)</h2>
+            <h2 class="text-2xl font-semibold text-sky-700 mb-4">📄 Upload Bill for OpenAI OCR</h2>
+             <div class="mb-3">
+                <label for="openAiApiKeyInput" class="block text-sm font-medium text-slate-700 mb-1">OpenAI API Key:</label>
+                <input type="password" id="openAiApiKeyInput" placeholder="Enter your OpenAI API Key" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                <p class="text-xs text-slate-500 mt-1">Your API key is used only in your browser and not stored.</p>
+            </div>
             <div>
                 <label for="billImageInput" class="block text-sm font-medium text-slate-700 mb-1">Select Bill Image:</label>
                 <input type="file" id="billImageInput" accept="image/png, image/jpeg, image/webp" class="w-full p-2 border border-slate-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200">
                 <img id="billImagePreview" src="#" alt="Bill preview" class="mt-3 rounded-lg max-h-60 w-auto shadow-sm" style="display:none;">
-                <button onclick="processBillImage()" id="processBillBtn" class="mt-4 w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 disabled:opacity-50" disabled>Process Image for Items</button>
+                <button onclick="processBillImageWithOpenAI()" id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 disabled:opacity-50" disabled>Process Image with OpenAI</button>
                 <p class="text-xs text-slate-500 mt-2">Note: OCR accuracy depends on image quality and bill format. Always review extracted items.</p>
             </div>
         </section>
@@ -78,33 +83,32 @@
         <section id="reviewExtractedItemsSection" class="mb-8 p-6 bg-indigo-50 rounded-lg shadow" style="display: none;">
             <h2 class="text-2xl font-semibold text-indigo-700 mb-4">🔍 Review Extracted Items</h2>
             <p id="ocrRawOutput" class="text-xs text-slate-500 bg-slate-100 p-2 rounded mb-3 whitespace-pre-wrap overflow-x-auto custom-scrollbar" style="display:none; max-height: 100px;"></p>
-            <div id="extractedItemsReviewContainer" class="space-y-4">
-                </div>
+            <div id="extractedItemsReviewContainer" class="space-y-4"></div>
             <p id="noExtractedItemsMsg" class="text-slate-600">No items extracted or all items added.</p>
         </section>
 
         <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
             <h2 class="text-2xl font-semibold text-sky-700 mb-4">🛒 Add Item Manually</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div><label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label><input type="text" id="itemNameInput" placeholder="e.g., Pizza" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-sky-500"></div>
-                <div><label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label><input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-sky-500"></div>
+                <div><label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label><input type="text" id="itemNameInput" placeholder="e.g., Pizza" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></div>
+                <div><label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label><input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></div>
             </div>
-            <div class="mb-4"><p class="block text-sm font-medium text-slate-700 mb-2">Shared by:</p><div id="sharerCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 border rounded-md"><p class="text-slate-500 col-span-full" id="noFriendsForSharingMsg">Add friends first.</p></div></div>
-            <button onclick="addItemManually()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item Manually</button>
+            <div class="mb-4"><p class="block text-sm font-medium text-slate-700 mb-2">Shared by (select all that apply):</p><div id="sharerCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 border border-slate-200 rounded-md"><p class="text-slate-500 col-span-full" id="noFriendsForSharingMsg">Add friends to select sharers.</p></div></div>
+            <button onclick="addItemManually()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150">Add Item Manually</button>
         </section>
 
-        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow"><h2 class="text-2xl font-semibold text-sky-700 mb-4">📋 Items Added for Splitting</h2><div id="itemsListContainer" class="max-h-96 overflow-y-auto custom-scrollbar space-y-3"><p id="noItemsMsg" class="text-slate-500">No items added yet.</p></div></section>
-        <section class="mb-8 text-center"><button onclick="calculateSplit()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
-        <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText" class="text-md"></p><p id="discountAppliedText" class="text-md"></p><p id="finalItemizedCostText" class="text-lg font-semibold"></p><p id="unaccountedMoneyText" class="text-lg font-bold mt-1"></p></div></div><div class="mt-8 text-center"><button onclick="generateAndShowImage()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">🖼️ Share Results Image</button></div></section>
+        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow"><h2 class="text-2xl font-semibold text-sky-700 mb-4">📋 Items Added for Splitting</h2><div id="itemsListContainer" class="max-h-96 overflow-y-auto custom-scrollbar space-y-3"><p id="noItemsMsg" class="text-slate-500">No items added yet. Add items above to see them here.</p></div></section>
+        <section class="mb-8 text-center"><button onclick="calculateSplit()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
+        <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText" class="text-md font-medium text-slate-600"></p><p id="discountAppliedText" class="text-md font-medium text-slate-600"></p><p id="finalItemizedCostText" class="text-lg font-semibold text-sky-700"></p><p id="unaccountedMoneyText" class="text-lg font-bold mt-1"></p></div></div><div class="mt-8 text-center"><button onclick="generateAndShowImage()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150">🖼️ Share Results as Image</button></div></section>
     </div>
 
     <script>
         // --- Data Storage ---
         let friends = [];
         let items = [];
-        let extractedBillItems = []; // To store items from OCR for review
+        let extractedBillItems = []; 
 
-        // --- DOM Elements (existing and new) ---
+        // --- DOM Elements ---
         const friendNameInput = document.getElementById('friendNameInput');
         const friendsTagsContainer = document.getElementById('friendsTags');
         const sharerCheckboxesContainer = document.getElementById('sharerCheckboxesContainer');
@@ -114,8 +118,8 @@
         const discountValueInput = document.getElementById('discountValueInput');
         const discountTypeSelect = document.getElementById('discountTypeSelect');
 
-        const itemNameInput = document.getElementById('itemNameInput'); // For manual add
-        const itemCostInput = document.getElementById('itemCostInput'); // For manual add
+        const itemNameInput = document.getElementById('itemNameInput');
+        const itemCostInput = document.getElementById('itemCostInput');
         
         const itemsListContainer = document.getElementById('itemsListContainer');
         const noItemsMsg = document.getElementById('noItemsMsg');
@@ -135,8 +139,10 @@
         const generatedImagePreview = document.getElementById('generatedImagePreview');
         const downloadImageBtn = document.getElementById('downloadImageBtn');
         const loadingModal = document.getElementById('loadingModal');
+        const loadingModalText = document.getElementById('loadingModalText'); // For specific loading messages
 
         // OCR Related DOM Elements
+        const openAiApiKeyInput = document.getElementById('openAiApiKeyInput'); // New input for OpenAI API Key
         const billImageInput = document.getElementById('billImageInput');
         const billImagePreview = document.getElementById('billImagePreview');
         const processBillBtn = document.getElementById('processBillBtn');
@@ -152,7 +158,7 @@
         function showAlert(message) { modalMessageText.textContent = message; showModal('customAlertModal'); }
         window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
 
-        // --- Friend Management (same as before) ---
+        // --- Friend Management ---
         function addFriend() {
             const friendName = friendNameInput.value.trim();
             if (!friendName) { showAlert("Please enter a friend's name."); return; }
@@ -160,8 +166,8 @@
             friends.push(friendName);
             friendNameInput.value = "";
             renderFriends();
-            renderSharerCheckboxes(); // For manual section
-            renderExtractedItemSharerCheckboxes(); // For OCR review section
+            renderSharerCheckboxes(); 
+            renderExtractedItemSharerCheckboxes(); 
             friendNameInput.focus();
         }
 
@@ -169,8 +175,8 @@
             friendsTagsContainer.innerHTML = friends.length === 0 ? '<p class="text-slate-500">No friends added yet.</p>' :
                 friends.map((friend, index) => `
                     <span class="bg-sky-200 text-sky-800 text-sm font-medium px-3 py-1.5 rounded-full flex items-center shadow-sm">
-                        ${friend}
-                        <button onclick="removeFriend(${index})" class="ml-2 text-sky-600 hover:text-red-500 font-bold text-lg leading-none" aria-label="Remove ${friend}">&times;</button>
+                        ${friend.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                        <button onclick="removeFriend(${index})" class="ml-2 text-sky-600 hover:text-red-500 font-bold text-lg leading-none" aria-label="Remove ${friend.replace(/</g, "&lt;").replace(/>/g, "&gt;")}">&times;</button>
                     </span>`).join('');
         }
 
@@ -181,29 +187,30 @@
             renderFriends();
             renderSharerCheckboxes();
             renderItemsList();
-            renderExtractedItemsForReview(); // Re-render OCR items as sharers might change
+            renderExtractedItemsForReview(); 
         }
         
         function createSharerCheckboxGroup(uniquePrefix) {
             if (friends.length === 0) return `<p class="text-slate-500 col-span-full">Add friends to select sharers.</p>`;
             return friends.map(friend => {
-                const checkboxId = `${uniquePrefix}-sharer-${friend.replace(/\s+/g, '-')}`;
+                const safeFriendName = friend.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+                const checkboxId = `${uniquePrefix}-sharer-${safeFriendName}`;
                 return `
                     <div class="friend-checkbox-label">
-                        <input type="checkbox" id="${checkboxId}" value="${friend}" name="${uniquePrefix}-sharers" class="form-checkbox h-5 w-5 text-sky-600 rounded focus:ring-sky-500">
-                        <label for="${checkboxId}" class="ml-2 text-slate-700 cursor-pointer select-none">${friend}</label>
+                        <input type="checkbox" id="${checkboxId}" value="${friend}" name="${uniquePrefix}-sharers" class="form-checkbox h-5 w-5 text-sky-600 border-slate-400 rounded focus:ring-sky-500 cursor-pointer">
+                        <label for="${checkboxId}" class="ml-2 text-slate-700 cursor-pointer select-none">${friend.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</label>
                     </div>`;
             }).join('');
         }
         
-        function renderSharerCheckboxes() { // For manual add section
+        function renderSharerCheckboxes() { 
             sharerCheckboxesContainer.innerHTML = friends.length === 0 ? 
                 noFriendsForSharingMsg.outerHTML : 
                 createSharerCheckboxGroup('manual');
             noFriendsForSharingMsg.style.display = friends.length === 0 ? 'block' : 'none';
         }
         
-        function renderExtractedItemSharerCheckboxes() { // For OCR items, if already rendered
+        function renderExtractedItemSharerCheckboxes() { 
             extractedBillItems.forEach((item, index) => {
                 const sharerDiv = document.getElementById(`ocr-item-${index}-sharers`);
                 if (sharerDiv) {
@@ -212,8 +219,7 @@
             });
         }
 
-
-        // --- OCR Bill Processing ---
+        // --- OpenAI OCR Bill Processing ---
         billImageInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
@@ -230,7 +236,14 @@
             }
         });
 
-        async function processBillImage() {
+        async function processBillImageWithOpenAI() {
+            const openAiApiKey = openAiApiKeyInput.value.trim();
+            if (!openAiApiKey) {
+                showAlert("Please enter your OpenAI API Key.");
+                openAiApiKeyInput.focus();
+                return;
+            }
+
             const file = billImageInput.files[0];
             if (!file) {
                 showAlert("Please select an image file first.");
@@ -241,69 +254,81 @@
                 return;
             }
 
+            loadingModalText.textContent = "Processing Bill with OpenAI...";
             showModal('loadingModal');
             processBillBtn.disabled = true;
 
             const reader = new FileReader();
             reader.onloadend = async function() {
-                const base64ImageData = reader.result.split(',')[1]; // Get base64 part
+                // The reader.result here is the base64 data URI: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD..."
+                const base64ImageDataWithPrefix = reader.result; 
                 
-                // Prepare API call to Gemini
-                const apiKey = "AIzaSyDfuoNiKCFtJPFnIov49DAjqlI2W67zSEg"; // Will be handled by environment
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = "https://api.openai.com/v1/chat/completions";
                 
-                const prompt = `Analyze this image of a receipt. Extract all purchased items and their corresponding costs.
+                const prompt = `Analyze this image of a receipt. Extract all purchased items and their corresponding costs in Indian Rupees (₹).
 Format each item strictly as: ITEM_NAME - COST
 Example:
-Pizza - 250.00
-Coke - 40.50
-Garlic Bread - 120.00
-If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not add any other commentary.`;
+Masala Dosa - 150.00
+Filter Coffee - 40.50
+Paneer Tikka - 220.00
+If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not add any other commentary or currency symbols in the COST part, just the number.`;
 
                 const payload = {
-                    contents: [{
-                        role: "user",
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType: file.type, data: base64ImageData } }
-                        ]
-                    }],
-                    generationConfig: {
-                        // "temperature": 0.2, // Lower temperature for more deterministic output
-                        // "maxOutputTokens": 500
-                    }
+                    model: "gpt-4o", // Or "gpt-4-vision-preview" if you prefer
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                { type: "text", text: prompt },
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: base64ImageDataWithPrefix, // Send the full data URI
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    max_tokens: 1000 // Adjust as needed
                 };
 
                 try {
                     const response = await fetch(apiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${openAiApiKey}`
+                        },
                         body: JSON.stringify(payload)
                     });
 
                     if (!response.ok) {
                         const errorData = await response.json();
-                        console.error("API Error:", errorData);
-                        throw new Error(`API request failed: ${errorData.error?.message || response.statusText}`);
+                        console.error("OpenAI API Error:", errorData);
+                        let errorMsg = `OpenAI API request failed: ${response.statusText}`;
+                        if (errorData.error && errorData.error.message) {
+                            errorMsg += ` - ${errorData.error.message}`;
+                        }
+                        throw new Error(errorMsg);
                     }
 
                     const result = await response.json();
                     
                     let extractedText = "NO_ITEMS_EXTRACTED";
-                    if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0]) {
-                        extractedText = result.candidates[0].content.parts[0].text.trim();
+                    if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
+                        extractedText = result.choices[0].message.content.trim();
                     }
                     
-                    ocrRawOutput.textContent = "Raw AI Output:\n" + extractedText;
+                    ocrRawOutput.textContent = "Raw OpenAI Output:\n" + extractedText;
                     ocrRawOutput.style.display = 'block';
                     parseAndDisplayExtractedItems(extractedText);
 
                 } catch (error) {
-                    console.error("Error processing bill image:", error);
-                    showAlert(`Error: ${error.message}. Check console for details.`);
-                    ocrRawOutput.textContent = "Error during processing. " + error.message;
+                    console.error("Error processing bill image with OpenAI:", error);
+                    showAlert(`OpenAI Error: ${error.message}. Check console for details.`);
+                    ocrRawOutput.textContent = "Error during OpenAI processing. " + error.message;
                     ocrRawOutput.style.display = 'block';
-                    extractedItemsReviewContainer.innerHTML = '<p class="text-red-500">Could not process items from bill.</p>';
+                    extractedItemsReviewContainer.innerHTML = '<p class="text-red-500">Could not process items from bill using OpenAI.</p>';
                     noExtractedItemsMsg.style.display = 'none';
                 } finally {
                     closeModal('loadingModal');
@@ -312,21 +337,23 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
                     reviewExtractedItemsSection.scrollIntoView({ behavior: 'smooth' });
                 }
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file); // This generates the data URI with prefix
         }
 
         function parseAndDisplayExtractedItems(text) {
-            extractedBillItems = []; // Clear previous
+            extractedBillItems = []; 
             const lines = text.split('\n');
-            const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/;
+            const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/; // Regex to capture "ITEM_NAME - COST"
 
             lines.forEach(line => {
                 const match = line.trim().match(itemRegex);
                 if (match) {
                     const name = match[1].trim();
+                    // Remove any leading/trailing non-alphanumeric characters from name that might be OCR artifacts
+                    const cleanedName = name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, ""); 
                     const cost = parseFloat(match[2]);
-                    if (name && !isNaN(cost) && cost > 0) {
-                        extractedBillItems.push({ name, cost, sharers: [] }); // Initially no sharers
+                    if (cleanedName && !isNaN(cost) && cost >= 0) { // Allow 0 cost items if any
+                        extractedBillItems.push({ name: cleanedName, cost, sharers: [] });
                     }
                 }
             });
@@ -336,7 +363,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
         function renderExtractedItemsForReview() {
             extractedItemsReviewContainer.innerHTML = "";
             if (extractedBillItems.length === 0) {
-                noExtractedItemsMsg.textContent = "No valid items extracted, or AI could not process the bill. Try manual entry or a clearer image.";
+                noExtractedItemsMsg.textContent = "No valid items extracted by OpenAI, or AI could not process the bill. Try manual entry or a clearer image.";
                 noExtractedItemsMsg.style.display = 'block';
                 return;
             }
@@ -345,11 +372,13 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             extractedBillItems.forEach((item, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
+                // Sanitize item.name for display in value attribute
+                const sanitizedItemName = item.name.replace(/"/g, "&quot;");
                 itemDiv.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                         <div>
                             <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item Name:</label>
-                            <input type="text" id="ocr-item-${index}-name" value="${item.name}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
+                            <input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
                         </div>
                         <div>
                             <label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label>
@@ -374,8 +403,8 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             const itemName = nameInput.value.trim();
             const itemCost = parseFloat(costInput.value);
 
-            if (!itemName || isNaN(itemCost) || itemCost <= 0) {
-                showAlert("Please ensure extracted item has a valid name and positive cost.");
+            if (!itemName || isNaN(itemCost) || itemCost < 0) { // Allow 0 cost items
+                showAlert("Please ensure extracted item has a valid name and non-negative cost.");
                 return;
             }
 
@@ -387,9 +416,8 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             const selectedSharers = Array.from(sharerCheckboxes).map(cb => cb.value);
 
             items.push({ name: itemName, cost: itemCost, sharers: selectedSharers });
-            renderItemsList(); // Update main list
+            renderItemsList(); 
 
-            // Remove item from review list and re-render review section
             extractedBillItems.splice(ocrItemIndex, 1);
             renderExtractedItemsForReview();
             if(extractedBillItems.length === 0) {
@@ -397,7 +425,6 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
                  noExtractedItemsMsg.style.display = 'block';
             }
         }
-
 
         // --- Item Management (Manual) ---
         function addItemManually() {
@@ -407,7 +434,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             if (!itemName) { showAlert("Please enter the item name."); itemNameInput.focus(); return; }
             if (!itemCostString) { showAlert("Please enter the item cost."); itemCostInput.focus(); return; }
             const itemCost = parseFloat(itemCostString);
-            if (isNaN(itemCost) || itemCost <= 0) { showAlert("Valid positive cost (₹) required."); itemCostInput.focus(); return; }
+            if (isNaN(itemCost) || itemCost < 0) { showAlert("Valid non-negative cost (₹) required."); itemCostInput.focus(); return; }
 
             const selectedSharerElements = document.querySelectorAll('input[name="manual-sharers"]:checked');
             if (selectedSharerElements.length === 0) { showAlert("Select at least one sharer."); return; }
@@ -425,11 +452,15 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             noItemsMsg.style.display = items.length === 0 ? 'block' : 'none';
             items.forEach((item, index) => {
                 const itemDiv = document.createElement('div');
-                itemDiv.className = 'p-4 bg-white border rounded-lg shadow-sm flex justify-between items-center';
+                itemDiv.className = 'p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex justify-between items-center';
+                // Sanitize item name for display
+                const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
+
                 itemDiv.innerHTML = `
                     <div>
-                        <p class="font-semibold text-slate-700">${item.name}</p>
-                        <p class="text-sm text-slate-500">₹${item.cost.toFixed(2)} - Shared by: ${item.sharers.join(', ')}</p>
+                        <p class="font-semibold text-slate-700">${safeItemName}</p>
+                        <p class="text-sm text-slate-500">₹${item.cost.toFixed(2)} - Shared by: ${safeSharers}</p>
                     </div>
                     <button onclick="removeItemFromSplit(${index})" class="text-red-500 hover:text-red-700 font-semibold py-1 px-2 rounded text-sm">Remove</button>`;
                 itemsListContainer.appendChild(itemDiv);
@@ -441,7 +472,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             renderItemsList();
         }
 
-        // --- Calculation Logic (mostly same, ensure currency symbol is correct) ---
+        // --- Calculation Logic ---
         function calculateSplit() {
             if (friends.length === 0) { showAlert("Add friends first."); return; }
             if (items.length === 0) { showAlert("Add at least one item to split."); return; }
@@ -464,19 +495,19 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             const discountValue = parseFloat(discountValueInput.value) || 0;
             const discountType = discountTypeSelect.value;
             let totalDiscountAmount = 0;
-            if (discountValue > 0) {
+            if (discountValue > 0 && originalTotalItemizedCost > 0) { // Apply discount only if there's something to discount
                 totalDiscountAmount = discountType === 'percentage' ? (originalTotalItemizedCost * discountValue) / 100 : discountValue;
-                if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; // Cap discount
+                if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; 
             }
             let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
 
             if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
                  friends.forEach(friend => {
                     const originalShare = individualOwes[friend];
-                    if (originalShare > 0) { // Apply discount only if they owed something initially
+                    if (originalShare > 0) { 
                         const proportionOfTotal = originalShare / originalTotalItemizedCost;
                         const discountForFriend = totalDiscountAmount * proportionOfTotal;
-                        individualOwes[friend] = Math.max(0, originalShare - discountForFriend); // Ensure not negative
+                        individualOwes[friend] = Math.max(0, originalShare - discountForFriend); 
                     }
                 });
             }
@@ -484,8 +515,9 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             individualSplitsDisplay.innerHTML = "";
             friends.forEach(friend => {
                 const owesAmount = individualOwes[friend] || 0;
-                individualSplitsDisplay.innerHTML += `<p class="p-3 bg-white border rounded-md shadow-sm">
-                    <span class="font-semibold">${friend}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
+                const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                individualSplitsDisplay.innerHTML += `<p class="p-3 bg-white border border-slate-200 rounded-md shadow-sm">
+                    <span class="font-semibold">${safeFriendName}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
             });
 
             originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
@@ -501,7 +533,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             resultsSection.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // --- Image Generation & Sharing (same as before) ---
+        // --- Image Generation & Sharing ---
         async function generateAndShowImage() {
             if (!resultsSection.style.display || resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
             const originalBg = resultsToCapture.style.backgroundColor;
@@ -526,7 +558,18 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
         renderFriends();
         renderSharerCheckboxes();
         renderItemsList();
+        // Add basic HTML sanitization for displayed user inputs
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+        // Update rendering functions to use sanitizeHTML where appropriate for user-entered text
+        // Example: in renderFriends, when displaying friend name.
+        // This is already implicitly handled by textContent, but good to be mindful of if using innerHTML directly with user input.
+        // For attributes like `value` in input fields, the browser usually handles it, but for direct `innerHTML` it's critical.
+        // I've added .replace(/</g, "&lt;").replace(/>/g, "&gt;") in a few places as a direct measure.
+
     </script>
 </body>
 </html>
-
