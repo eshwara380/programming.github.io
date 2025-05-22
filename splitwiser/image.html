@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Expense Splitter - ₹ (with OpenAI OCR + Tax)</title>
+    <title>Group Expense Splitter - ₹ (with OpenAI OCR)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5g+e9iwTgUBG/z5wsC+wL3QAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -43,7 +43,7 @@
     <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-2xl">
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-sky-600">🍽️ Group Expense Splitter (₹)</h1>
-            <p class="text-slate-500 mt-2">Split expenses manually or upload a bill image for OpenAI OCR extraction (including taxes)!</p>
+            <p class="text-slate-500 mt-2">Split expenses manually or upload a bill image for OpenAI OCR extraction!</p>
         </header>
 
         <div id="customAlertModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="closeModal('customAlertModal')">&times;</span><p id="modalMessageText" class="text-lg text-slate-700 mb-4"></p><button onclick="closeModal('customAlertModal')" class="mt-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg transition">OK</button></div></div>
@@ -67,19 +67,21 @@
         <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
             <h2 class="text-2xl font-semibold text-sky-700 mb-4">📄 Upload Bill for OpenAI OCR</h2>
              <div class="mb-3">
-                <p class="text-sm text-slate-700 mb-1">Your OpenAI API Key will be used for bill processing. <br><span class="font-semibold">Important:</span> For this local version, you'll need to add your API key directly into the script. See comments in the code.</p>
-                </div>
+                <label for="openAiApiKeyInput" class="block text-sm font-medium text-slate-700 mb-1">OpenAI API Key:</label>
+                <input type="password" id="openAiApiKeyInput" placeholder="Enter your OpenAI API Key" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                <p class="text-xs text-slate-500 mt-1">Your API key is used only in your browser and not stored.</p>
+            </div>
             <div>
                 <label for="billImageInput" class="block text-sm font-medium text-slate-700 mb-1">Select Bill Image:</label>
                 <input type="file" id="billImageInput" accept="image/png, image/jpeg, image/webp" class="w-full p-2 border border-slate-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200">
                 <img id="billImagePreview" src="#" alt="Bill preview" class="mt-3 rounded-lg max-h-60 w-auto shadow-sm" style="display:none;">
                 <button onclick="processBillImageWithOpenAI()" id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 disabled:opacity-50" disabled>Process Image with OpenAI</button>
-                <p class="text-xs text-slate-500 mt-2">Note: OCR accuracy depends on image quality and bill format. Always review extracted items (including taxes).</p>
+                <p class="text-xs text-slate-500 mt-2">Note: OCR accuracy depends on image quality and bill format. Always review extracted items.</p>
             </div>
         </section>
         
         <section id="reviewExtractedItemsSection" class="mb-8 p-6 bg-indigo-50 rounded-lg shadow" style="display: none;">
-            <h2 class="text-2xl font-semibold text-indigo-700 mb-4">🔍 Review Extracted Items (incl. Taxes)</h2>
+            <h2 class="text-2xl font-semibold text-indigo-700 mb-4">🔍 Review Extracted Items</h2>
             <p id="ocrRawOutput" class="text-xs text-slate-500 bg-slate-100 p-2 rounded mb-3 whitespace-pre-wrap overflow-x-auto custom-scrollbar" style="display:none; max-height: 100px;"></p>
             <div id="extractedItemsReviewContainer" class="space-y-4"></div>
             <p id="noExtractedItemsMsg" class="text-slate-600">No items extracted or all items added.</p>
@@ -137,10 +139,10 @@
         const generatedImagePreview = document.getElementById('generatedImagePreview');
         const downloadImageBtn = document.getElementById('downloadImageBtn');
         const loadingModal = document.getElementById('loadingModal');
-        const loadingModalText = document.getElementById('loadingModalText');
+        const loadingModalText = document.getElementById('loadingModalText'); // For specific loading messages
 
         // OCR Related DOM Elements
-        // const openAiApiKeyInput = document.getElementById('openAiApiKeyInput'); // Removed as key will be hardcoded for local
+        const openAiApiKeyInput = document.getElementById('openAiApiKeyInput'); // New input for OpenAI API Key
         const billImageInput = document.getElementById('billImageInput');
         const billImagePreview = document.getElementById('billImagePreview');
         const processBillBtn = document.getElementById('processBillBtn');
@@ -235,13 +237,10 @@
         });
 
         async function processBillImageWithOpenAI() {
-            // ---------------------------------------------------------------------------
-            // TODO: REPLACE "YOUR_OPENAI_API_KEY_HERE" with your actual OpenAI API Key
-            // ---------------------------------------------------------------------------
-            const openAiApiKey = "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"; 
-
-            if (openAiApiKey === "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" || !openAiApiKey) {
-                showAlert("Please add your OpenAI API Key into the script where indicated (see code comments).");
+            const openAiApiKey = openAiApiKeyInput.value.trim();
+            if (!openAiApiKey) {
+                showAlert("Please enter your OpenAI API Key.");
+                openAiApiKeyInput.focus();
                 return;
             }
 
@@ -261,24 +260,21 @@
 
             const reader = new FileReader();
             reader.onloadend = async function() {
+                // The reader.result here is the base64 data URI: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD..."
                 const base64ImageDataWithPrefix = reader.result; 
                 
                 const apiUrl = "https://api.openai.com/v1/chat/completions";
                 
                 const prompt = `Analyze this image of a receipt. Extract all purchased items and their corresponding costs in Indian Rupees (₹).
-Also extract any tax amounts listed (like GST, CGST, SGST, VAT, Service Charge, etc.) and their costs.
-Format each item, including taxes, strictly as: ITEM_NAME - COST
+Format each item strictly as: ITEM_NAME - COST
 Example:
 Masala Dosa - 150.00
 Filter Coffee - 40.50
 Paneer Tikka - 220.00
-CGST - 20.50
-SGST - 20.50
-Service Charge - 50.00
 If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not add any other commentary or currency symbols in the COST part, just the number.`;
 
                 const payload = {
-                    model: "gpt-4o", 
+                    model: "gpt-4o", // Or "gpt-4-vision-preview" if you prefer
                     messages: [
                         {
                             role: "user",
@@ -287,13 +283,13 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
                                 {
                                     type: "image_url",
                                     image_url: {
-                                        url: base64ImageDataWithPrefix, 
+                                        url: base64ImageDataWithPrefix, // Send the full data URI
                                     },
                                 },
                             ],
                         },
                     ],
-                    max_tokens: 1000 
+                    max_tokens: 1000 // Adjust as needed
                 };
 
                 try {
@@ -341,24 +337,22 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
                     reviewExtractedItemsSection.scrollIntoView({ behavior: 'smooth' });
                 }
             };
-            reader.readAsDataURL(file); 
+            reader.readAsDataURL(file); // This generates the data URI with prefix
         }
 
         function parseAndDisplayExtractedItems(text) {
             extractedBillItems = []; 
             const lines = text.split('\n');
-            // Regex to capture "ITEM_NAME - COST" or "TAX_NAME - COST"
-            // It allows for multi-word item/tax names
-            const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/; 
+            const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/; // Regex to capture "ITEM_NAME - COST"
 
             lines.forEach(line => {
                 const match = line.trim().match(itemRegex);
                 if (match) {
                     const name = match[1].trim();
-                    // Basic cleaning for item name, can be expanded
-                    const cleanedName = name.replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").replace(/\s+/g, ' ').trim();
+                    // Remove any leading/trailing non-alphanumeric characters from name that might be OCR artifacts
+                    const cleanedName = name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, ""); 
                     const cost = parseFloat(match[2]);
-                    if (cleanedName && !isNaN(cost) && cost >= 0) { 
+                    if (cleanedName && !isNaN(cost) && cost >= 0) { // Allow 0 cost items if any
                         extractedBillItems.push({ name: cleanedName, cost, sharers: [] });
                     }
                 }
@@ -369,7 +363,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
         function renderExtractedItemsForReview() {
             extractedItemsReviewContainer.innerHTML = "";
             if (extractedBillItems.length === 0) {
-                noExtractedItemsMsg.textContent = "No valid items (including taxes) extracted by OpenAI, or AI could not process the bill. Try manual entry or a clearer image.";
+                noExtractedItemsMsg.textContent = "No valid items extracted by OpenAI, or AI could not process the bill. Try manual entry or a clearer image.";
                 noExtractedItemsMsg.style.display = 'block';
                 return;
             }
@@ -378,11 +372,12 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             extractedBillItems.forEach((item, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
+                // Sanitize item.name for display in value attribute
                 const sanitizedItemName = item.name.replace(/"/g, "&quot;");
                 itemDiv.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                         <div>
-                            <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label>
+                            <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item Name:</label>
                             <input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
                         </div>
                         <div>
@@ -408,7 +403,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             const itemName = nameInput.value.trim();
             const itemCost = parseFloat(costInput.value);
 
-            if (!itemName || isNaN(itemCost) || itemCost < 0) { 
+            if (!itemName || isNaN(itemCost) || itemCost < 0) { // Allow 0 cost items
                 showAlert("Please ensure extracted item has a valid name and non-negative cost.");
                 return;
             }
@@ -458,6 +453,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             items.forEach((item, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex justify-between items-center';
+                // Sanitize item name for display
                 const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
 
@@ -499,7 +495,7 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
             const discountValue = parseFloat(discountValueInput.value) || 0;
             const discountType = discountTypeSelect.value;
             let totalDiscountAmount = 0;
-            if (discountValue > 0 && originalTotalItemizedCost > 0) { 
+            if (discountValue > 0 && originalTotalItemizedCost > 0) { // Apply discount only if there's something to discount
                 totalDiscountAmount = discountType === 'percentage' ? (originalTotalItemizedCost * discountValue) / 100 : discountValue;
                 if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; 
             }
@@ -562,6 +558,18 @@ If you cannot identify items or costs, respond with "NO_ITEMS_EXTRACTED". Do not
         renderFriends();
         renderSharerCheckboxes();
         renderItemsList();
+        // Add basic HTML sanitization for displayed user inputs
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+        // Update rendering functions to use sanitizeHTML where appropriate for user-entered text
+        // Example: in renderFriends, when displaying friend name.
+        // This is already implicitly handled by textContent, but good to be mindful of if using innerHTML directly with user input.
+        // For attributes like `value` in input fields, the browser usually handles it, but for direct `innerHTML` it's critical.
+        // I've added .replace(/</g, "&lt;").replace(/>/g, "&gt;") in a few places as a direct measure.
+
     </script>
 </body>
 </html>
