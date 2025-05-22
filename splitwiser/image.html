@@ -249,7 +249,7 @@
                 const base64ImageData = reader.result.split(',')[1]; // Get base64 part
                 
                 // Prepare API call to Gemini
-                const apiKey = ""; // Will be handled by environment
+                const apiKey = "AIzaSyDfuoNiKCFtJPFnIov49DAjqlI2W67zSEg"; // Will be handled by environment
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                 
                 const prompt = `Analyze this image of a receipt. Extract all purchased items and their corresponding costs.
