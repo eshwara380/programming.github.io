@@ -1,1 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Expense Splitter - ₹</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5g+e9iwTgUBG/z5wsC+wL3QAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* Adjusted margin for better centering */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%; /* Responsive width */
+            max-width: 450px; /* Max width for modal */
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-right: 0.5rem;
+        }
+        .friend-checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0;
+        }
+        /* Styling for the image preview in modal */
+        #imagePreviewModalContent img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 p-4 md:p-8">
+
+    <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-2xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-600">🍽️ Group Expense Splitter (₹)</h1>
+            <p class="text-slate-500 mt-2">Easily calculate who owes what after your group outing!</p>
+        </header>
+
+        <div id="customAlertModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeModal('customAlertModal')">&times;</span>
+                <p id="modalMessageText" class="text-lg text-slate-700 mb-4"></p>
+                <button onclick="closeModal('customAlertModal')" class="mt-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-150">OK</button>
+            </div>
+        </div>
+
+        <div id="imagePreviewModal" class="modal">
+            <div id="imagePreviewModalContent" class="modal-content">
+                <span class="modal-close" onclick="closeModal('imagePreviewModal')">&times;</span>
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">Generated Split Image</h3>
+                <p class="text-sm text-slate-600 mb-3">You can right-click/long-press to copy or save the image.</p>
+                <img id="generatedImagePreview" src="#" alt="Generated Split Preview">
+                <button id="downloadImageBtn" class="mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-150 mr-2">Download Image</button>
+                <button onclick="closeModal('imagePreviewModal')" class="mt-6 bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-150">Close</button>
+            </div>
+        </div>
+
+
+        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold text-sky-700 mb-4">👥 Group Members</h2>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                <button onclick="addFriend()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 whitespace-nowrap">Add Friend</button>
+            </div>
+            <div id="friendsListDisplay" class="text-slate-600 space-y-1">
+                <p class="font-medium">Current Group:</p>
+                <div id="friendsTags" class="flex flex-wrap gap-2"></div>
+            </div>
+        </section>
+
+        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold text-sky-700 mb-4">💰 Bill & Discount</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="totalBillInput" class="block text-sm font-medium text-slate-700 mb-1">Total Bill Amount (₹):</label>
+                    <input type="number" id="totalBillInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                </div>
+                <div>
+                    <label for="discountValueInput" class="block text-sm font-medium text-slate-700 mb-1">Discount:</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="discountValueInput" placeholder="e.g., 100 or 10" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                        <select id="discountTypeSelect" class="p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                            <option value="amount">₹ (Amount)</option>
+                            <option value="percentage">% (Percentage)</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Enter discount value and select type. Applied to itemized costs.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold text-sky-700 mb-4">🛒 Add Item to Split</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label>
+                    <input type="text" id="itemNameInput" placeholder="e.g., Pizza, Movie Tickets" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                </div>
+                <div>
+                    <label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label>
+                    <input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="block text-sm font-medium text-slate-700 mb-2">Shared by (select all that apply):</p>
+                <div id="sharerCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 border border-slate-200 rounded-md">
+                    <p class="text-slate-500 col-span-full" id="noFriendsForSharingMsg">Add friends to select sharers.</p>
+                </div>
+            </div>
+            <button onclick="addItem()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150">Add Item</button>
+        </section>
+
+        <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold text-sky-700 mb-4">📋 Items Added for Splitting</h2>
+            <div id="itemsListContainer" class="max-h-96 overflow-y-auto custom-scrollbar space-y-3">
+                <p id="noItemsMsg" class="text-slate-500">No items added yet. Add items above to see them here.</p>
+            </div>
+        </section>
+
+        <section class="mb-8 text-center">
+            <button onclick="calculateSplit()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">
+                📊 Calculate Split!
+            </button>
+        </section>
+
+        <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;">
+            <div id="resultsToCapture"> <h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2>
+                <div id="individualSplitsDisplay" class="space-y-3 mb-6"></div>
+                <div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg">
+                    <p id="originalItemizedCostText" class="text-md font-medium text-slate-600"></p>
+                    <p id="discountAppliedText" class="text-md font-medium text-slate-600"></p>
+                    <p id="finalItemizedCostText" class="text-lg font-semibold text-sky-700"></p>
+                    <p id="unaccountedMoneyText" class="text-lg font-bold mt-1"></p>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <button onclick="generateAndShowImage()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150">🖼️ Share Results as Image</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- Data Storage ---
+        let friends = [];
+        let items = [];
+        let generatedImageBlob = null; // To store the blob for copying
+
+        // --- DOM Elements ---
+        const friendNameInput = document.getElementById('friendNameInput');
+        const friendsTagsContainer = document.getElementById('friendsTags');
+        const sharerCheckboxesContainer = document.getElementById('sharerCheckboxesContainer');
+        const noFriendsForSharingMsg = document.getElementById('noFriendsForSharingMsg');
+        
+        const totalBillInput = document.getElementById('totalBillInput');
+        const discountValueInput = document.getElementById('discountValueInput');
+        const discountTypeSelect = document.getElementById('discountTypeSelect');
+
+        const itemNameInput = document.getElementById('itemNameInput');
+        const itemCostInput = document.getElementById('itemCostInput');
+        
+        const itemsListContainer = document.getElementById('itemsListContainer');
+        const noItemsMsg = document.getElementById('noItemsMsg');
+        
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsToCapture = document.getElementById('resultsToCapture');
+        const individualSplitsDisplay = document.getElementById('individualSplitsDisplay');
+        
+        const originalItemizedCostText = document.getElementById('originalItemizedCostText');
+        const discountAppliedText = document.getElementById('discountAppliedText');
+        const finalItemizedCostText = document.getElementById('finalItemizedCostText');
+        const unaccountedMoneyText = document.getElementById('unaccountedMoneyText');
+
+        const customAlertModal = document.getElementById('customAlertModal');
+        const modalMessageText = document.getElementById('modalMessageText');
+        const imagePreviewModal = document.getElementById('imagePreviewModal');
+        const generatedImagePreview = document.getElementById('generatedImagePreview');
+        const downloadImageBtn = document.getElementById('downloadImageBtn');
+
+
+        // --- Modal Functions ---
+        function showAlert(message) {
+            modalMessageText.textContent = message;
+            customAlertModal.style.display = "block";
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+            if (modalId === 'imagePreviewModal') {
+                generatedImagePreview.src = "#"; // Clear preview
+                generatedImageBlob = null;
+            }
+        }
+
+        // Close modal if user clicks outside of it
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+                 if (event.target.id === 'imagePreviewModal') {
+                    generatedImagePreview.src = "#"; // Clear preview
+                    generatedImageBlob = null;
+                }
+            }
+        }
+
+        // --- Friend Management ---
+        function addFriend() {
+            const friendName = friendNameInput.value.trim();
+            if (friendName === "") {
+                showAlert("Please enter a friend's name.");
+                return;
+            }
+            if (friends.includes(friendName)) {
+                showAlert(`"${friendName}" is already in the group.`);
+                return;
+            }
+            friends.push(friendName);
+            friendNameInput.value = "";
+            renderFriends();
+            renderSharerCheckboxes();
+            friendNameInput.focus();
+        }
+
+        function renderFriends() {
+            friendsTagsContainer.innerHTML = "";
+            if (friends.length === 0) {
+                friendsTagsContainer.innerHTML = '<p class="text-slate-500">No friends added yet.</p>';
+            } else {
+                friends.forEach((friend, index) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'bg-sky-200 text-sky-800 text-sm font-medium px-3 py-1.5 rounded-full flex items-center shadow-sm';
+                    tag.textContent = friend;
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'ml-2 text-sky-600 hover:text-red-500 font-bold text-lg leading-none';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = () => removeFriend(index);
+                    removeBtn.setAttribute('aria-label', `Remove ${friend}`);
+                    tag.appendChild(removeBtn);
+                    friendsTagsContainer.appendChild(tag);
+                });
+            }
+        }
+
+        function removeFriend(indexToRemove) {
+            const removedFriendName = friends[indexToRemove];
+            friends.splice(indexToRemove, 1);
+            items.forEach(item => {
+                item.sharers = item.sharers.filter(sharer => sharer !== removedFriendName);
+            });
+            renderFriends();
+            renderSharerCheckboxes();
+            renderItemsList();
+        }
+
+        function renderSharerCheckboxes() {
+            sharerCheckboxesContainer.innerHTML = "";
+            if (friends.length === 0) {
+                noFriendsForSharingMsg.style.display = 'block';
+            } else {
+                noFriendsForSharingMsg.style.display = 'none';
+                friends.forEach(friend => {
+                    const div = document.createElement('div');
+                    div.className = 'friend-checkbox-label';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `sharer-${friend.replace(/\s+/g, '-')}`;
+                    checkbox.value = friend;
+                    checkbox.name = 'sharers';
+                    checkbox.className = 'form-checkbox h-5 w-5 text-sky-600 border-slate-400 rounded focus:ring-sky-500 cursor-pointer';
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = friend;
+                    label.className = 'ml-2 text-slate-700 cursor-pointer select-none';
+                    
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    sharerCheckboxesContainer.appendChild(div);
+                });
+            }
+        }
+
+        // --- Item Management ---
+        function addItem() {
+            const itemName = itemNameInput.value.trim();
+            const itemCostString = itemCostInput.value.trim();
+
+            if (itemName === "") {
+                showAlert("Please enter the item name.");
+                itemNameInput.focus();
+                return;
+            }
+            if (itemCostString === "") {
+                showAlert("Please enter the item cost.");
+                itemCostInput.focus();
+                return;
+            }
+            const itemCost = parseFloat(itemCostString);
+            if (isNaN(itemCost) || itemCost <= 0) {
+                showAlert("Please enter a valid positive cost (₹) for the item.");
+                itemCostInput.focus();
+                return;
+            }
+
+            const selectedSharerElements = document.querySelectorAll('input[name="sharers"]:checked');
+            if (selectedSharerElements.length === 0) {
+                showAlert("Please select at least one friend who shared this item.");
+                return;
+            }
+
+            const selectedSharers = Array.from(selectedSharerElements).map(cb => cb.value);
+            items.push({ name: itemName, cost: itemCost, sharers: selectedSharers });
+            renderItemsList();
+            itemNameInput.value = "";
+            itemCostInput.value = "";
+            selectedSharerElements.forEach(cb => cb.checked = false);
+            itemNameInput.focus();
+        }
+
+        function renderItemsList() {
+            itemsListContainer.innerHTML = "";
+            if (items.length === 0) {
+                noItemsMsg.style.display = 'block';
+            } else {
+                noItemsMsg.style.display = 'none';
+                items.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex justify-between items-center';
+                    
+                    const itemInfo = document.createElement('div');
+                    const itemNameP = document.createElement('p');
+                    itemNameP.className = 'font-semibold text-slate-700';
+                    itemNameP.textContent = item.name;
+                    
+                    const itemCostP = document.createElement('p');
+                    itemCostP.className = 'text-sm text-slate-500';
+                    itemCostP.textContent = `₹${item.cost.toFixed(2)} - Shared by: ${item.sharers.join(', ')}`;
+                    
+                    itemInfo.appendChild(itemNameP);
+                    itemInfo.appendChild(itemCostP);
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'text-red-500 hover:text-red-700 font-semibold py-1 px-2 rounded text-sm';
+                    removeBtn.innerHTML = 'Remove';
+                    removeBtn.onclick = () => removeItem(index);
+                    
+                    itemDiv.appendChild(itemInfo);
+                    itemDiv.appendChild(removeBtn);
+                    itemsListContainer.appendChild(itemDiv);
+                });
+            }
+        }
+
+        function removeItem(indexToRemove) {
+            items.splice(indexToRemove, 1);
+            renderItemsList();
+        }
+
+        // --- Calculation Logic ---
+        function calculateSplit() {
+            if (friends.length === 0) {
+                showAlert("Please add friends to the group before calculating.");
+                return;
+            }
+            if (items.length === 0) {
+                showAlert("Please add at least one item to split.");
+                return;
+            }
+            const totalBillString = totalBillInput.value.trim();
+            if (totalBillString === "") {
+                showAlert("Please enter the total bill amount (₹).");
+                totalBillInput.focus();
+                return;
+            }
+            const totalBill = parseFloat(totalBillString);
+            if (isNaN(totalBill) || totalBill < 0) {
+                showAlert("Please enter a valid total bill amount (₹).");
+                totalBillInput.focus();
+                return;
+            }
+
+            let individualOwes = {};
+            friends.forEach(friend => {
+                individualOwes[friend] = 0;
+            });
+
+            let originalTotalItemizedCost = 0;
+            items.forEach(item => {
+                originalTotalItemizedCost += item.cost;
+                if (item.sharers.length > 0) {
+                    const costPerSharer = item.cost / item.sharers.length;
+                    item.sharers.forEach(sharer => {
+                        if (individualOwes.hasOwnProperty(sharer)) {
+                            individualOwes[sharer] += costPerSharer;
+                        }
+                    });
+                }
+            });
+
+            // Apply Discount
+            const discountValue = parseFloat(discountValueInput.value) || 0;
+            const discountType = discountTypeSelect.value;
+            let totalDiscountAmount = 0;
+
+            if (discountValue > 0) {
+                if (discountType === 'percentage') {
+                    totalDiscountAmount = (originalTotalItemizedCost * discountValue) / 100;
+                } else { // amount
+                    totalDiscountAmount = discountValue;
+                }
+                 // Ensure discount doesn't exceed total itemized cost
+                if (totalDiscountAmount > originalTotalItemizedCost) {
+                    totalDiscountAmount = originalTotalItemizedCost;
+                    showAlert("Discount amount exceeds total itemized cost. Adjusted to total itemized cost.");
+                }
+            }
+            
+            let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
+
+            // Distribute discount proportionally if there's a total itemized cost
+            if (originalTotalItemizedCost > 0) {
+                 friends.forEach(friend => {
+                    const originalShare = individualOwes[friend];
+                    const proportionOfTotal = originalShare / originalTotalItemizedCost;
+                    const discountForFriend = totalDiscountAmount * proportionOfTotal;
+                    individualOwes[friend] = originalShare - discountForFriend;
+                    if (individualOwes[friend] < 0) individualOwes[friend] = 0; // Cannot owe negative
+                });
+            }
+
+
+            // Display individual splits
+            individualSplitsDisplay.innerHTML = "";
+            friends.forEach(friend => {
+                const owesAmount = individualOwes[friend] || 0;
+                const resultP = document.createElement('p');
+                resultP.className = 'p-3 bg-white border border-slate-200 rounded-md shadow-sm text-slate-700';
+                resultP.innerHTML = `<span class="font-semibold">${friend}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span>`;
+                individualSplitsDisplay.appendChild(resultP);
+            });
+
+            // Display summary
+            originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
+            if (totalDiscountAmount > 0) {
+                discountAppliedText.textContent = `Discount Applied: -₹${totalDiscountAmount.toFixed(2)}`;
+                discountAppliedText.style.display = 'block';
+            } else {
+                discountAppliedText.style.display = 'none';
+            }
+            finalItemizedCostText.textContent = `Final Itemized Cost (after discount): ₹${finalTotalItemizedCost.toFixed(2)}`;
+            
+            const unaccountedMoney = totalBill - finalTotalItemizedCost;
+            if (unaccountedMoney >= 0) {
+                unaccountedMoneyText.textContent = `Unaccounted Money (Surplus/Tip?): ₹${unaccountedMoney.toFixed(2)}`;
+                unaccountedMoneyText.className = 'text-lg font-bold text-green-600 mt-1';
+            } else {
+                unaccountedMoneyText.textContent = `Shortfall (Bill less than final itemized cost): ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
+                unaccountedMoneyText.className = 'text-lg font-bold text-red-600 mt-1';
+            }
+            
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Image Generation & Sharing ---
+        async function generateAndShowImage() {
+            if (!resultsSection.style.display || resultsSection.style.display === 'none') {
+                showAlert("Please calculate the split first to generate an image.");
+                return;
+            }
+
+            // Temporarily make the background of the captured element white for better image output
+            const originalBg = resultsToCapture.style.backgroundColor;
+            resultsToCapture.style.backgroundColor = 'white';
+            // Add some padding for the image
+            const originalPadding = resultsToCapture.style.padding;
+            resultsToCapture.style.padding = '20px';
+
+
+            try {
+                const canvas = await html2canvas(resultsToCapture, {
+                    scale: 2, // Increase scale for better resolution
+                    useCORS: true, // If you had external images, though not used here
+                    logging: false
+                });
+                
+                // Restore original styles
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+
+                const imageDataUrl = canvas.toDataURL('image/png');
+                generatedImagePreview.src = imageDataUrl;
+                
+                // For download button
+                downloadImageBtn.onclick = () => {
+                    const link = document.createElement('a');
+                    link.download = 'expense_split_results.png';
+                    link.href = imageDataUrl;
+                    link.click();
+                };
+                
+                imagePreviewModal.style.display = 'block';
+
+            } catch (error) {
+                console.error("Error generating image:", error);
+                showAlert("Sorry, an error occurred while generating the image.");
+                // Restore original styles in case of error
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+            }
+        }
+
+
+        // --- Initial Render ---
+        renderFriends();
+        renderSharerCheckboxes();
+        renderItemsList();
+
+    </script>
+</body>
+</html>
 
