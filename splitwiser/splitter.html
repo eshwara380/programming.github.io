@@ -13,19 +13,18 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Your web app's Firebase configuration
         // TODO: Replace with your actual Firebase config object
-   const firebaseConfig = {
-  apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
-  authDomain: "test-splitwiser.firebaseapp.com",
-  projectId: "test-splitwiser",
-  storageBucket: "test-splitwiser.firebasestorage.app",
-  messagingSenderId: "65835544178",
-  appId: "1:65835544178:web:e4e9e7d7e0bc24f5381ceb",
-  measurementId: "G-29KLDPY75N"
-};
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+            projectId: "YOUR_FIREBASE_PROJECT_ID",
+            storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+            appId: "YOUR_FIREBASE_APP_ID"
+        };
 
         try {
             // Initialize Firebase
@@ -41,7 +40,8 @@
                 setDoc,
                 onSnapshot,
                 updateDoc,
-                serverTimestamp
+                serverTimestamp,
+                arrayUnion // Expose arrayUnion for adding items to an array
             };
             
             // Sign in user anonymously to secure Firestore rules if needed
@@ -345,16 +345,22 @@
         };
         
         function showCreateRoomPrompt() {
-            const roomName = prompt("Enter a name for your room (e.g., 'Goa Trip'):");
+            const creatorName = prompt("First, what is your name?");
+            if (!creatorName || !creatorName.trim()) return;
+
+            const roomName = prompt("Great! Now, what should the room be called? (e.g., 'Goa Trip')");
             if (roomName && roomName.trim()) {
-                createRoom(roomName.trim());
+                createRoom(roomName.trim(), creatorName.trim());
             }
         };
 
         function showJoinRoomPrompt() {
+            const joinerName = prompt("First, what is your name?");
+            if (!joinerName || !joinerName.trim()) return;
+
             const roomId = prompt("Enter the 6-character Room Code to join:");
             if (roomId && roomId.trim()) {
-                joinRoom(roomId.trim().toUpperCase());
+                joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
             }
         };
 
@@ -384,7 +390,7 @@
         }
 
         // --- FIRESTORE INTERACTION ---
-        async function createRoom(roomName) {
+        async function createRoom(roomName, creatorName) {
             if (!window.firebase) { showAlert('Database connection not available.'); return; }
             const { db, doc, setDoc, serverTimestamp } = window.firebase;
             const roomId = generateRoomId();
@@ -397,10 +403,15 @@
                 await setDoc(roomRef, {
                     roomName: roomName,
                     createdAt: serverTimestamp(),
-                    friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount'
+                    friends: [creatorName], // Initialize with creator's name
+                    items: [], 
+                    totalBill: 0, 
+                    discountValue: 0, 
+                    discountType: 'amount'
                 });
                 closeModal('loadingModal');
-                await joinRoom(roomId);
+                // No need to join separately, creator is already in. We just need to start listening.
+                startListeningToRoom(roomId);
             } catch(error) {
                 console.error("Error creating room: ", error);
                 showAlert("Could not create room. Please try again.");
@@ -408,9 +419,9 @@
             }
         }
         
-        async function joinRoom(roomId) {
+        async function joinRoom(roomId, joinerName) {
             if (!window.firebase) { showAlert('Database connection not available.'); return; }
-            const { db, doc, getDoc, onSnapshot } = window.firebase;
+            const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase;
             const roomRef = doc(db, "rooms", roomId);
             
             loadingModalText.textContent = 'Joining room...';
@@ -420,25 +431,13 @@
                 const docSnap = await getDoc(roomRef);
                 if (!docSnap.exists()) throw new Error("Room not found.");
                 
-                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-
-                AppState.mode = 'room';
-                AppState.roomId = roomId;
-                
-                AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
-                    console.log("Received room update");
-                    const data = doc.data();
-                    AppState = { ...AppState, ...data };
-                    renderAll();
-                    roomNameDisplay.textContent = data.roomName;
+                // Add the joiner's name to the friends list if not already present
+                await updateDoc(roomRef, {
+                    friends: arrayUnion(joinerName)
                 });
                 
-                closeModal('loadingModal');
-                welcomeScreen.style.display = 'none';
-                appContainer.style.display = 'block';
-                roomInfoBar.style.display = 'block';
-                roomCodeDisplay.textContent = roomId;
-                appSubtitle.textContent = `You are in a collaborative room.`;
+                // Now start listening to the room
+                startListeningToRoom(roomId);
 
             } catch(error) {
                 console.error("Error joining room: ", error);
@@ -447,6 +446,33 @@
             }
         }
         
+        function startListeningToRoom(roomId) {
+            const { db, doc, onSnapshot } = window.firebase;
+            const roomRef = doc(db, "rooms", roomId);
+
+            if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
+
+            AppState.mode = 'room';
+            AppState.roomId = roomId;
+            
+            AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
+                console.log("Received room update");
+                const data = doc.data();
+                if (data) {
+                    AppState = { ...AppState, ...data };
+                    renderAll();
+                    roomNameDisplay.textContent = data.roomName;
+                }
+            });
+            
+            closeModal('loadingModal');
+            welcomeScreen.style.display = 'none';
+            appContainer.style.display = 'block';
+            roomInfoBar.style.display = 'block';
+            roomCodeDisplay.textContent = roomId;
+            appSubtitle.textContent = `You are in a collaborative room.`;
+        }
+
         async function updateFirestore(newData) {
             if (AppState.mode !== 'room' || !AppState.roomId) return;
             const { db, doc, updateDoc } = window.firebase;
@@ -495,8 +521,13 @@
             
             const newItems = [...AppState.items, { name: itemName, cost: itemCost, sharers }];
             
-            if (AppState.mode === 'room') updateFirestore({ items: newItems });
-            else { AppState.items = newItems; renderItemsList(); }
+            if (AppState.mode === 'room') {
+                const { arrayUnion } = window.firebase;
+                updateFirestore({ items: arrayUnion({ name: itemName, cost: itemCost, sharers: sharers }) });
+            } else { 
+                AppState.items = newItems; 
+                renderItemsList(); 
+            }
             
             document.getElementById('itemNameInput').value = "";
             document.getElementById('itemCostInput').value = "";
@@ -589,8 +620,12 @@
             const newItems = [...AppState.items, { name, cost, sharers }];
             AppState.extractedBillItems.splice(index, 1);
             
-            if (AppState.mode === 'room') updateFirestore({ items: newItems });
-            else AppState.items = newItems;
+            if (AppState.mode === 'room') {
+                // To avoid race conditions, it's better to update the whole items array
+                updateFirestore({ items: newItems });
+            } else {
+                AppState.items = newItems;
+            }
             
             renderAll();
         }
