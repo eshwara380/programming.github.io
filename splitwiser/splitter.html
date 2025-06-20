@@ -17,36 +17,42 @@
         
         // Your web app's Firebase configuration
         // TODO: Replace with your actual Firebase config object
-        const firebaseConfig = {
-    apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
-    authDomain: "test-splitwiser.firebaseapp.com",
-    projectId: "test-splitwiser",
-    storageBucket: "test-splitwiser.firebasestorage.app",
-    messagingSenderId: "65835544178",
-    appId: "1:65835544178:web:e4e9e7d7e0bc24f5381ceb",
-    measurementId: "G-29KLDPY75N"
-  };
+   const firebaseConfig = {
+  apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
+  authDomain: "test-splitwiser.firebaseapp.com",
+  projectId: "test-splitwiser",
+  storageBucket: "test-splitwiser.firebasestorage.app",
+  messagingSenderId: "65835544178",
+  appId: "1:65835544178:web:e4e9e7d7e0bc24f5381ceb",
+  measurementId: "G-29KLDPY75N"
+};
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
 
-        // Expose functions and db to the global window object to be used by inline scripts
-        window.firebase = {
-            db,
-            doc,
-            getDoc,
-            setDoc,
-            onSnapshot,
-            updateDoc,
-            serverTimestamp
-        };
-        
-        // Sign in user anonymously to secure Firestore rules if needed
-        signInAnonymously(auth).catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
-        });
+            // Expose functions and db to the global window object to be used by the main script
+            window.firebase = {
+                db,
+                doc,
+                getDoc,
+                setDoc,
+                onSnapshot,
+                updateDoc,
+                serverTimestamp
+            };
+            
+            // Sign in user anonymously to secure Firestore rules if needed
+            signInAnonymously(auth).catch((error) => {
+                console.error("Anonymous sign-in failed:", error);
+            });
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            // If firebase fails to init, window.firebase will be undefined.
+            // The main script will handle showing an alert to the user.
+        }
 
     </script>
     
@@ -116,8 +122,8 @@
             <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
                 <h2 class="text-2xl font-semibold text-sky-700 mb-4">💰 Bill & Discount</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label for="totalBillInput" class="block text-sm font-medium text-slate-700 mb-1">Total Bill Amount (₹):</label><input type="number" id="totalBillInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500" onchange="updateBillDetails()"></div>
-                    <div><label for="discountValueInput" class="block text-sm font-medium text-slate-700 mb-1">Discount:</label><div class="flex gap-2"><input type="number" id="discountValueInput" placeholder="e.g., 100 or 10" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500" onchange="updateBillDetails()"><select id="discountTypeSelect" class="p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500" onchange="updateBillDetails()"><option value="amount">₹</option><option value="percentage">%</option></select></div><p class="text-xs text-slate-500 mt-1">Applied to itemized costs.</p></div>
+                    <div><label for="totalBillInput" class="block text-sm font-medium text-slate-700 mb-1">Total Bill Amount (₹):</label><input type="number" id="totalBillInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500" oninput="updateBillDetails()"></div>
+                    <div><label for="discountValueInput" class="block text-sm font-medium text-slate-700 mb-1">Discount:</label><div class="flex gap-2"><input type="number" id="discountValueInput" placeholder="e.g., 100 or 10" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500" oninput="updateBillDetails()"><select id="discountTypeSelect" class="p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500" onchange="updateBillDetails()"><option value="amount">₹</option><option value="percentage">%</option></select></div><p class="text-xs text-slate-500 mt-1">Applied to itemized costs.</p></div>
                 </div>
             </section>
 
@@ -165,14 +171,31 @@
     <div id="loadingModal" class="modal"><div class="modal-content"><p id="loadingModalText" class="text-lg text-slate-700 mb-2">Processing...</p><div class="spinner"></div></div></div>
 
     <script type="module">
-        // This is a separate script tag to use modules after the body has loaded
-        // and access the window.firebase object.
+        // This is the main script for the application.
+        // It's a module to handle Firebase imports properly.
+        
+        // --- CHECK FIREBASE INITIALIZATION ---
+        // This is a critical check. If window.firebase is not set up by the first script,
+        // the collaborative features will not work.
+        if (!window.firebase) {
+            document.addEventListener('DOMContentLoaded', () => {
+                 // Hide all buttons and show an error message.
+                const welcomeContainer = document.getElementById('welcomeScreen');
+                if (welcomeContainer) {
+                    welcomeContainer.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-2xl text-red-600">
+                        <h1 class="text-3xl font-bold">Connection Error</h1>
+                        <p class="mt-4">Could not connect to the database service.</p>
+                        <p class="mt-2">Please ensure you have correctly added your Firebase configuration object in the script.</p>
+                        </div>`;
+                }
+            });
+        }
 
         // --- GLOBAL APP STATE ---
         let AppState = {
-            mode: 'solo', // 'solo' or 'room'
+            mode: 'solo',
             roomId: null,
-            roomUnsubscribe: null, // To store the Firestore listener cleanup function
+            roomUnsubscribe: null,
             friends: [],
             items: [],
             totalBill: 0,
@@ -181,9 +204,6 @@
             extractedBillItems: []
         };
         
-        // Make AppState globally accessible for inline event handlers
-        window.AppState = AppState;
-
         // --- DOM Elements ---
         const welcomeScreen = document.getElementById('welcomeScreen');
         const appContainer = document.getElementById('appContainer');
@@ -191,8 +211,6 @@
         const roomNameDisplay = document.getElementById('roomNameDisplay');
         const roomCodeDisplay = document.getElementById('roomCodeDisplay');
         const appSubtitle = document.getElementById('appSubtitle');
-
-        // Other DOM elements (same as before)
         const friendNameInput = document.getElementById('friendNameInput');
         const friendsTagsContainer = document.getElementById('friendsTags');
         const totalBillInput = document.getElementById('totalBillInput');
@@ -203,16 +221,33 @@
         const sharerCheckboxesContainer = document.getElementById('sharerCheckboxesContainer');
         const noFriendsForSharingMsg = document.getElementById('noFriendsForSharingMsg');
         const extractedItemsReviewContainer = document.getElementById('extractedItemsReviewContainer');
+        const ocrRawOutput = document.getElementById('ocrRawOutput');
+        const noExtractedItemsMsg = document.getElementById('noExtractedItemsMsg');
+        const billImageInput = document.getElementById('billImageInput');
+        const billImagePreview = document.getElementById('billImagePreview');
+        const processBillBtn = document.getElementById('processBillBtn');
+        const loadingModalText = document.getElementById('loadingModalText');
+        const resultsSection = document.getElementById('resultsSection');
+        const individualSplitsDisplay = document.getElementById('individualSplitsDisplay');
+        const originalItemizedCostText = document.getElementById('originalItemizedCostText');
+        const discountAppliedText = document.getElementById('discountAppliedText');
+        const finalItemizedCostText = document.getElementById('finalItemizedCostText');
+        const unaccountedMoneyText = document.getElementById('unaccountedMoneyText');
+        
+        // --- UTILITY & MODAL FUNCTIONS ---
+        function showModal(modalId) { document.getElementById(modalId).style.display = "block"; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+        function showAlert(message) { document.getElementById('modalMessageText').textContent = message; showModal('customAlertModal'); }
+        window.closeModal = closeModal; // Make it accessible from inline onclick
+        window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
 
-        // --- UI Update Functions (Renderers) ---
-        // These functions take data from AppState and render it to the DOM.
-        // They are the single source of truth for UI updates.
+        // --- UI RENDERERS ---
         function renderAll() {
             renderFriends();
             renderItemsList();
             renderBillDetails();
             renderSharerCheckboxes();
-            renderExtractedItemsForReview(); // This will re-render based on AppState.extractedBillItems
+            renderExtractedItemsForReview();
         }
 
         function renderFriends() {
@@ -242,13 +277,62 @@
         }
 
         function renderBillDetails() {
-            if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill;
-            if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue;
+            if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || '';
+            if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || '';
             if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType;
         }
+
+        function createSharerCheckboxGroup(uniquePrefix) {
+            if (AppState.friends.length === 0) return `<p class="text-slate-500 col-span-full">Add friends to select sharers.</p>`;
+            return AppState.friends.map(friend => {
+                const safeFriendName = friend.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+                const checkboxId = `${uniquePrefix}-sharer-${safeFriendName}`;
+                return `<div class="friend-checkbox-label">
+                        <input type="checkbox" id="${checkboxId}" value="${friend}" name="${uniquePrefix}-sharers" class="form-checkbox h-5 w-5 text-sky-600 border-slate-400 rounded focus:ring-sky-500 cursor-pointer">
+                        <label for="${checkboxId}" class="ml-2 text-slate-700 cursor-pointer select-none">${friend.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</label>
+                    </div>`;
+            }).join('');
+        }
         
-        // --- Session Management ---
-        window.startSoloSession = () => {
+        function renderSharerCheckboxes() { 
+            noFriendsForSharingMsg.style.display = AppState.friends.length === 0 ? 'block' : 'none';
+            sharerCheckboxesContainer.innerHTML = AppState.friends.length === 0 ? '' : createSharerCheckboxGroup('manual');
+        }
+
+        function renderExtractedItemsForReview() {
+             extractedItemsReviewContainer.innerHTML = "";
+            if (AppState.extractedBillItems.length === 0) {
+                noExtractedItemsMsg.style.display = 'block';
+                return;
+            }
+            noExtractedItemsMsg.style.display = 'none';
+            AppState.extractedBillItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
+                const sanitizedItemName = item.name.replace(/"/g, "&quot;");
+                itemDiv.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div>
+                        <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label>
+                        <input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label>
+                        <input type="number" id="ocr-item-${index}-cost" value="${item.cost.toFixed(2)}" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm">
+                    </div>
+                    <button onclick="addExtractedItemToSplit(${index})" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-md text-sm md:mt-4 whitespace-nowrap">Add to Split List</button>
+                    </div>
+                    <div class="mt-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">Shared by:</p>
+                        <div id="ocr-item-${index}-sharers" class="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1 max-h-32 overflow-y-auto custom-scrollbar border border-slate-200 p-1.5 rounded-md">
+                            ${createSharerCheckboxGroup(`ocr-item-${index}`)}
+                        </div>
+                    </div>`;
+                extractedItemsReviewContainer.appendChild(itemDiv);
+            });
+        }
+        
+        // --- SESSION MANAGEMENT ---
+        function startSoloSession() {
             AppState.mode = 'solo';
             AppState.roomId = null;
             if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
@@ -260,21 +344,21 @@
             resetLocalState();
         };
         
-        window.showCreateRoomPrompt = () => {
+        function showCreateRoomPrompt() {
             const roomName = prompt("Enter a name for your room (e.g., 'Goa Trip'):");
             if (roomName && roomName.trim()) {
                 createRoom(roomName.trim());
             }
         };
 
-        window.showJoinRoomPrompt = () => {
+        function showJoinRoomPrompt() {
             const roomId = prompt("Enter the 6-character Room Code to join:");
             if (roomId && roomId.trim()) {
                 joinRoom(roomId.trim().toUpperCase());
             }
         };
 
-        window.leaveRoom = () => {
+        function leaveRoom() {
             if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
             AppState.mode = 'solo';
             AppState.roomId = null;
@@ -284,34 +368,24 @@
         };
         
         function copyRoomCode() {
-            const code = document.getElementById('roomCodeDisplay').textContent;
-            // Use a temporary textarea to copy to clipboard for better compatibility
+            const code = roomCodeDisplay.textContent;
             const textArea = document.createElement("textarea");
             textArea.value = code;
             document.body.appendChild(textArea);
             textArea.select();
-            try {
-                document.execCommand('copy');
-                showAlert(`Room Code "${code}" copied to clipboard!`);
-            } catch (err) {
-                showAlert('Failed to copy code.');
-            }
+            try { document.execCommand('copy'); showAlert(`Room Code "${code}" copied!`); } 
+            catch (err) { showAlert('Failed to copy code.'); }
             document.body.removeChild(textArea);
         }
-        window.copyRoomCode = copyRoomCode;
 
         function resetLocalState() {
-            AppState.friends = [];
-            AppState.items = [];
-            AppState.totalBill = 0;
-            AppState.discountValue = 0;
-            AppState.discountType = 'amount';
-            AppState.extractedBillItems = [];
+            AppState = { ...AppState, friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', extractedBillItems: [] };
             renderAll();
         }
 
-        // --- Firestore Interaction ---
+        // --- FIRESTORE INTERACTION ---
         async function createRoom(roomName) {
+            if (!window.firebase) { showAlert('Database connection not available.'); return; }
             const { db, doc, setDoc, serverTimestamp } = window.firebase;
             const roomId = generateRoomId();
             const roomRef = doc(db, "rooms", roomId);
@@ -323,15 +397,10 @@
                 await setDoc(roomRef, {
                     roomName: roomName,
                     createdAt: serverTimestamp(),
-                    // Initial state
-                    friends: [],
-                    items: [],
-                    totalBill: 0,
-                    discountValue: 0,
-                    discountType: 'amount'
+                    friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount'
                 });
                 closeModal('loadingModal');
-                await joinRoom(roomId); // Automatically join the room after creating
+                await joinRoom(roomId);
             } catch(error) {
                 console.error("Error creating room: ", error);
                 showAlert("Could not create room. Please try again.");
@@ -340,6 +409,7 @@
         }
         
         async function joinRoom(roomId) {
+            if (!window.firebase) { showAlert('Database connection not available.'); return; }
             const { db, doc, getDoc, onSnapshot } = window.firebase;
             const roomRef = doc(db, "rooms", roomId);
             
@@ -348,31 +418,18 @@
 
             try {
                 const docSnap = await getDoc(roomRef);
-                if (!docSnap.exists()) {
-                    throw new Error("Room not found.");
-                }
+                if (!docSnap.exists()) throw new Error("Room not found.");
                 
-                // If a previous listener exists, unsubscribe
                 if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
 
                 AppState.mode = 'room';
                 AppState.roomId = roomId;
                 
-                // Attach the real-time listener
                 AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
-                    console.log("Received room update: ", doc.data());
+                    console.log("Received room update");
                     const data = doc.data();
-                    // Update local state from Firestore
-                    AppState.friends = data.friends || [];
-                    AppState.items = data.items || [];
-                    AppState.totalBill = data.totalBill || 0;
-                    AppState.discountValue = data.discountValue || 0;
-                    AppState.discountType = data.discountType || 'amount';
-                    
-                    // Render the UI with the new state
+                    AppState = { ...AppState, ...data };
                     renderAll();
-                    
-                    // Update room info bar
                     roomNameDisplay.textContent = data.roomName;
                 });
                 
@@ -394,64 +451,40 @@
             if (AppState.mode !== 'room' || !AppState.roomId) return;
             const { db, doc, updateDoc } = window.firebase;
             const roomRef = doc(db, "rooms", AppState.roomId);
-            try {
-                await updateDoc(roomRef, newData);
-            } catch (error) {
-                console.error("Error updating Firestore:", error);
-                showAlert("Could not sync changes. Check connection.");
-            }
+            try { await updateDoc(roomRef, newData); } 
+            catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); }
         }
 
         function generateRoomId() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        // --- Modified Core Logic Functions ---
-        window.addFriend = () => {
+        // --- CORE LOGIC FUNCTIONS ---
+        function addFriend() {
             const friendName = friendNameInput.value.trim();
             if (!friendName) { showAlert("Please enter a friend's name."); return; }
             if (AppState.friends.includes(friendName)) { showAlert(`"${friendName}" is already in the group.`); return; }
             
             const newFriends = [...AppState.friends, friendName];
             
-            if (AppState.mode === 'room') {
-                updateFirestore({ friends: newFriends });
-            } else { // solo mode
-                AppState.friends = newFriends;
-                renderFriends();
-                renderSharerCheckboxes();
-            }
+            if (AppState.mode === 'room') updateFirestore({ friends: newFriends });
+            else { AppState.friends = newFriends; renderAll(); }
             friendNameInput.value = "";
         };
 
-        window.removeFriend = (index) => {
-            const newFriends = [...AppState.friends];
-            newFriends.splice(index, 1);
-            
-            // Also remove friend from items
+        function removeFriend(index) {
+            const friendToRemove = AppState.friends[index];
+            const newFriends = AppState.friends.filter((_, i) => i !== index);
             const newItems = AppState.items.map(item => ({
                 ...item,
-                sharers: item.sharers.filter((sharer, i) => sharer !== AppState.friends[index])
+                sharers: item.sharers.filter(sharer => sharer !== friendToRemove)
             }));
             
-            if (AppState.mode === 'room') {
-                updateFirestore({ friends: newFriends, items: newItems });
-            } else {
-                AppState.friends = newFriends;
-                AppState.items = newItems;
-                renderFriends();
-                renderItemsList();
-                renderSharerCheckboxes();
-            }
+            if (AppState.mode === 'room') updateFirestore({ friends: newFriends, items: newItems });
+            else { AppState.friends = newFriends; AppState.items = newItems; renderAll(); }
         };
         
-        window.addItemManually = () => {
-            // Same validation logic as before
+        function addItemManually() {
             const itemName = document.getElementById('itemNameInput').value.trim();
             const itemCost = parseFloat(document.getElementById('itemCostInput').value);
             if (!itemName || isNaN(itemCost) || itemCost < 0) { showAlert("Please enter valid item name and cost."); return; }
@@ -460,77 +493,44 @@
             if (sharerCheckboxes.length === 0) { showAlert("Please select at least one sharer."); return; }
             const sharers = Array.from(sharerCheckboxes).map(cb => cb.value);
             
-            const newItem = { name: itemName, cost: itemCost, sharers: sharers };
-            const newItems = [...AppState.items, newItem];
+            const newItems = [...AppState.items, { name: itemName, cost: itemCost, sharers }];
             
-            if (AppState.mode === 'room') {
-                updateFirestore({ items: newItems });
-            } else {
-                AppState.items = newItems;
-                renderItemsList();
-            }
-            // Clear inputs
+            if (AppState.mode === 'room') updateFirestore({ items: newItems });
+            else { AppState.items = newItems; renderItemsList(); }
+            
             document.getElementById('itemNameInput').value = "";
             document.getElementById('itemCostInput').value = "";
             sharerCheckboxes.forEach(cb => cb.checked = false);
         };
         
-        window.removeItemFromSplit = (index) => {
+        function removeItemFromSplit(index) {
              const newItems = [...AppState.items];
              newItems.splice(index, 1);
-             if (AppState.mode === 'room') {
-                updateFirestore({ items: newItems });
-             } else {
-                AppState.items = newItems;
-                renderItemsList();
-             }
+             if (AppState.mode === 'room') updateFirestore({ items: newItems });
+             else { AppState.items = newItems; renderItemsList(); }
         };
         
-        window.updateBillDetails = () => {
+        function updateBillDetails() {
             const newTotalBill = parseFloat(totalBillInput.value) || 0;
             const newDiscountValue = parseFloat(discountValueInput.value) || 0;
             const newDiscountType = discountTypeSelect.value;
             
+            const updatePayload = { totalBill: newTotalBill, discountValue: newDiscountValue, discountType: newDiscountType };
+            
             if (AppState.mode === 'room') {
-                 // Debounce update to avoid spamming firestore on every key press
                  if (window.billUpdateTimeout) clearTimeout(window.billUpdateTimeout);
-                 window.billUpdateTimeout = setTimeout(() => {
-                    updateFirestore({
-                        totalBill: newTotalBill,
-                        discountValue: newDiscountValue,
-                        discountType: newDiscountType
-                    });
-                 }, 500); // 500ms delay
-                 
+                 window.billUpdateTimeout = setTimeout(() => updateFirestore(updatePayload), 500);
             } else {
-                AppState.totalBill = newTotalBill;
-                AppState.discountValue = newDiscountValue;
-                AppState.discountType = newDiscountType;
+                AppState = {...AppState, ...updatePayload };
             }
         };
 
-        // Make functions globally available for inline onclick handlers
-        // This is a simplified approach for this single-file app.
-        // In a larger app, you'd use event listeners instead of inline onclick.
-        window.renderAll = renderAll;
-        window.renderFriends = renderFriends;
-        window.renderItemsList = renderItemsList;
-        window.renderBillDetails = renderBillDetails;
-
-        // Existing OCR, calculation, and image generation functions
-        // They should be modified to use the AppState object
-        // For brevity, I'll include just the OpenAI one modified
-        
-        window.processBillImageWithOpenAI = async function () {
+        async function processBillImageWithOpenAI() {
             // TODO: REPLACE "YOUR_OPENAI_API_KEY_HERE" with your actual OpenAI API Key
             const openAiApiKey = "YOUR_OPENAI_API_KEY_HERE";
 
-            if (openAiApiKey === "YOUR_OPENAI_API_KEY_HERE" || !openAiApiKey) {
-                showAlert("Please add your OpenAI API Key into the script where indicated (see code comments).");
-                return;
-            }
-            const file = billImageInput.files[0];
-            if (!file) { showAlert("Please select an image file first."); return; }
+            if (openAiApiKey === "YOUR_OPENAI_API_KEY_HERE" || !openAiApiKey) { showAlert("OpenAI API Key not found in script. Please add it."); return; }
+            if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; }
             if (AppState.friends.length === 0) { showAlert("Please add friends before processing a bill."); return; }
 
             loadingModalText.textContent = "Processing Bill with OpenAI...";
@@ -560,7 +560,7 @@
                     document.getElementById('reviewExtractedItemsSection').style.display = 'block';
                 }
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(billImageInput.files[0]);
         }
         
         function parseAndDisplayExtractedItems(text) {
@@ -572,54 +572,13 @@
                 if (match) {
                     const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim();
                     const cost = parseFloat(match[2]);
-                    if (name && !isNaN(cost) && cost >= 0) {
-                        AppState.extractedBillItems.push({ name, cost, sharers: [] });
-                    }
+                    if (name && !isNaN(cost) && cost >= 0) AppState.extractedBillItems.push({ name, cost, sharers: [] });
                 }
             });
             renderExtractedItemsForReview();
         }
 
-        function renderExtractedItemsForReview() {
-            // This function renders the review section based on AppState.extractedBillItems
-            // This needs to be defined to be called from renderAll()
-            // The logic is the same as before, but using AppState.extractedBillItems
-             extractedItemsReviewContainer.innerHTML = "";
-            if (AppState.extractedBillItems.length === 0) {
-                document.getElementById('noExtractedItemsMsg').style.display = 'block';
-                return;
-            }
-            document.getElementById('noExtractedItemsMsg').style.display = 'none';
-            AppState.extractedBillItems.forEach((item, index) => {
-                 const itemDiv = document.createElement('div');
-                itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
-                const sanitizedItemName = item.name.replace(/"/g, "&quot;");
-                itemDiv.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                        <div>
-                            <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label>
-                            <input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
-                        </div>
-                        <div>
-                            <label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label>
-                            <input type="number" id="ocr-item-${index}-cost" value="${item.cost.toFixed(2)}" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm">
-                        </div>
-                        <button onclick="addExtractedItemToSplit(${index})" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-md text-sm md:mt-4 whitespace-nowrap">Add to Split List</button>
-                    </div>
-                    <div class="mt-3">
-                        <p class="text-xs font-medium text-slate-600 mb-1">Shared by:</p>
-                        <div id="ocr-item-${index}-sharers" class="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1 max-h-32 overflow-y-auto custom-scrollbar border border-slate-200 p-1.5 rounded-md">
-                            ${createSharerCheckboxGroup(`ocr-item-${index}`)}
-                        </div>
-                    </div>`;
-                extractedItemsReviewContainer.appendChild(itemDiv);
-            });
-        }
-        window.renderExtractedItemsForReview = renderExtractedItemsForReview;
-        window.createSharerCheckboxGroup = createSharerCheckboxGroup;
-        window.renderSharerCheckboxes = renderSharerCheckboxes;
-        
-        window.addExtractedItemToSplit = (index) => {
+        function addExtractedItemToSplit(index) {
             const name = document.getElementById(`ocr-item-${index}-name`).value.trim();
             const cost = parseFloat(document.getElementById(`ocr-item-${index}-cost`).value);
             if (!name || isNaN(cost) || cost < 0) { showAlert("Invalid name or cost."); return; }
@@ -630,27 +589,105 @@
             const newItems = [...AppState.items, { name, cost, sharers }];
             AppState.extractedBillItems.splice(index, 1);
             
-            if (AppState.mode === 'room') {
-                updateFirestore({ items: newItems });
-            } else {
-                AppState.items = newItems;
-                renderItemsList();
-            }
-            renderExtractedItemsForReview(); // Re-render review section
+            if (AppState.mode === 'room') updateFirestore({ items: newItems });
+            else AppState.items = newItems;
+            
+            renderAll();
         }
 
-        // Calculation and image generation can remain largely the same, just ensure they use AppState
-        // The rest of the functions (calculateSplit, generateImage, etc.) should be defined here
-        // and made global for inline `onclick` handlers, similar to the above.
-        // For brevity, those are omitted but their logic would be the same as the previous version,
-        // just making sure to read from `AppState.friends`, `AppState.items`, etc.
-        window.calculateSplit = () => { /* Same logic as before, using AppState */ };
-        window.generateAndShowImage = () => { /* Same logic as before */ };
+        function calculateSplit() {
+            if (AppState.friends.length === 0) { showAlert("Add friends first."); return; }
+            if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
+            if (!AppState.totalBill && AppState.totalBill !== 0) { showAlert("Enter total bill amount (₹)."); return; }
+
+            let individualOwes = {};
+            AppState.friends.forEach(friend => individualOwes[friend] = 0);
+            let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
+
+            AppState.items.forEach(item => {
+                if (item.sharers.length > 0) {
+                    const costPerSharer = item.cost / item.sharers.length;
+                    item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; });
+                }
+            });
+            
+            let totalDiscountAmount = 0;
+            if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) {
+                totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue;
+                if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost;
+            }
+            let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
+
+            if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
+                 AppState.friends.forEach(friend => {
+                    const originalShare = individualOwes[friend];
+                    if (originalShare > 0) {
+                        const proportionOfTotal = originalShare / originalTotalItemizedCost;
+                        const discountForFriend = totalDiscountAmount * proportionOfTotal;
+                        individualOwes[friend] = Math.max(0, originalShare - discountForFriend);
+                    }
+                });
+            }
+
+            individualSplitsDisplay.innerHTML = AppState.friends.map(friend => {
+                const owesAmount = individualOwes[friend] || 0;
+                const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return `<p class="p-3 bg-white border border-slate-200 rounded-md shadow-sm">
+                    <span class="font-semibold">${safeFriendName}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
+            }).join('');
+
+            originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
+            discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
+            discountAppliedText.textContent = `Discount Applied: -₹${totalDiscountAmount.toFixed(2)}`;
+            finalItemizedCostText.textContent = `Final Itemized Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
+            
+            const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
+            unaccountedMoneyText.textContent = unaccountedMoney >= 0 ? `Unaccounted (Surplus/Tip?): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
+            unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney >=0 ? 'text-green-600' : 'text-red-600'}`;
+            
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function generateAndShowImage() {
+            if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
+            const resultsToCapture = document.getElementById('resultsToCapture');
+            const originalBg = resultsToCapture.style.backgroundColor;
+            const originalPadding = resultsToCapture.style.padding;
+            resultsToCapture.style.backgroundColor = 'white';
+            resultsToCapture.style.padding = '20px';
+            try {
+                const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false });
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+                const imageDataUrl = canvas.toDataURL('image/png');
+                document.getElementById('generatedImagePreview').src = imageDataUrl;
+                document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); };
+                showModal('imagePreviewModal');
+            } catch (error) {
+                console.error("Image gen error:", error); showAlert("Error generating image.");
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+            }
+        }
+
+        // --- GLOBAL FUNCTION EXPOSURE ---
+        // Expose functions to be called by inline onclick handlers
+        window.startSoloSession = startSoloSession;
+        window.showCreateRoomPrompt = showCreateRoomPrompt;
+        window.showJoinRoomPrompt = showJoinRoomPrompt;
+        window.leaveRoom = leaveRoom;
+        window.copyRoomCode = copyRoomCode;
+        window.addFriend = addFriend;
+        window.removeFriend = removeFriend;
+        window.addItemManually = addItemManually;
+        window.removeItemFromSplit = removeItemFromSplit;
+        window.updateBillDetails = updateBillDetails;
+        window.processBillImageWithOpenAI = processBillImageWithOpenAI;
+        window.addExtractedItemToSplit = addExtractedItemToSplit;
+        window.calculateSplit = calculateSplit;
+        window.generateAndShowImage = generateAndShowImage;
 
     </script>
-    
-    <!-- Previous script content needs to be moved/integrated into the module script above -->
-    <!-- The old script tag is now replaced by the module script. -->
-    
 </body>
 </html>
