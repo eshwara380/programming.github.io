@@ -15,7 +15,7 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // TODO: Replace with your actual Firebase config object
-    const firebaseConfig = {
+   const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -132,7 +132,6 @@
                     <div><label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label><input type="text" id="itemNameInput" placeholder="e.g., Pizza" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                     <div><label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label><input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                 </div>
-                <!-- Sharer checkboxes removed from here as it's now per-item -->
                 <button onclick="addItemManually()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item</button>
             </section>
             
@@ -257,16 +256,40 @@
             if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType;
         }
         
+        function renderExtractedItemsForReview() {
+             extractedItemsReviewContainer.innerHTML = "";
+            if (!AppState.extractedBillItems || AppState.extractedBillItems.length === 0) {
+                noExtractedItemsMsg.style.display = 'block';
+                return;
+            }
+            noExtractedItemsMsg.style.display = 'none';
+            AppState.extractedBillItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
+                const sanitizedItemName = item.name.replace(/"/g, "&quot;");
+                itemDiv.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                    <div>
+                        <label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label>
+                        <input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label>
+                        <input type="number" id="ocr-item-${index}-cost" value="${item.cost.toFixed(2)}" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm">
+                    </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="addExtractedItemToSplit(${index})" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-md text-sm whitespace-nowrap">Add to Split List</button>
+                    </div>`;
+                extractedItemsReviewContainer.appendChild(itemDiv);
+            });
+        }
+        
         // --- SESSION MANAGEMENT ---
         function startSoloSession() {
-            AppState.mode = 'solo';
-            AppState.roomId = null;
+            AppState.mode = 'solo'; AppState.roomId = null;
             if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-            
-            welcomeScreen.style.display = 'none';
-            appContainer.style.display = 'block';
-            roomInfoBar.style.display = 'none';
-            manualAddFriendSection.style.display = 'flex';
+            welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
+            roomInfoBar.style.display = 'none'; manualAddFriendSection.style.display = 'flex';
             appSubtitle.textContent = 'Splitting bill in Solo Mode.';
             resetLocalState();
         };
@@ -274,30 +297,22 @@
         function showCreateRoomPrompt() {
             const creatorName = prompt("First, what is your name?");
             if (!creatorName || !creatorName.trim()) return;
-
             const roomName = prompt(`Great, ${creatorName}! Now, what should the room be called? (e.g., 'Goa Trip')`);
-            if (roomName && roomName.trim()) {
-                createRoom(roomName.trim(), creatorName.trim());
-            }
+            if (roomName && roomName.trim()) createRoom(roomName.trim(), creatorName.trim());
         };
 
         function showJoinRoomPrompt() {
             const joinerName = prompt("First, what is your name?");
             if (!joinerName || !joinerName.trim()) return;
-
             const roomId = prompt("Enter the 6-character Room Code to join:");
-            if (roomId && roomId.trim()) {
-                joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
-            }
+            if (roomId && roomId.trim()) joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
         };
 
         function leaveRoom() {
             if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
             sessionStorage.removeItem('currentUserName');
-            AppState.mode = 'solo';
-            AppState.roomId = null;
-            appContainer.style.display = 'none';
-            welcomeScreen.style.display = 'block';
+            AppState.mode = 'solo'; AppState.roomId = null;
+            appContainer.style.display = 'none'; welcomeScreen.style.display = 'block';
             resetLocalState();
         };
         
@@ -321,20 +336,16 @@
             const { db, doc, setDoc, serverTimestamp } = window.firebase;
             const roomId = generateRoomId();
             const roomRef = doc(db, "rooms", roomId);
-            
             loadingModalText.textContent = 'Creating room...'; showModal('loadingModal');
-
             try {
                 await setDoc(roomRef, {
-                    roomName: roomName, createdAt: serverTimestamp(),
+                    roomName, createdAt: serverTimestamp(),
                     friends: [creatorName], items: [], totalBill: 0, discountValue: 0, discountType: 'amount'
                 });
                 sessionStorage.setItem('currentUserName', creatorName);
                 startListeningToRoom(roomId);
             } catch(error) {
-                console.error("Error creating room: ", error);
-                showAlert("Could not create room. Please try again.");
-                closeModal('loadingModal');
+                console.error("Error creating room: ", error); showAlert("Could not create room."); closeModal('loadingModal');
             }
         }
         
@@ -342,28 +353,21 @@
             if (!window.firebase) { showAlert('Database connection not available.'); return; }
             const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase;
             const roomRef = doc(db, "rooms", roomId);
-            
             loadingModalText.textContent = 'Joining room...'; showModal('loadingModal');
-
             try {
                 const docSnap = await getDoc(roomRef);
                 if (!docSnap.exists()) throw new Error("Room not found.");
-                
                 await updateDoc(roomRef, { friends: arrayUnion(joinerName) });
-                
                 sessionStorage.setItem('currentUserName', joinerName);
                 startListeningToRoom(roomId);
             } catch(error) {
-                console.error("Error joining room: ", error);
-                showAlert(error.message);
-                closeModal('loadingModal');
+                console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal');
             }
         }
         
         function startListeningToRoom(roomId) {
             const { db, doc, onSnapshot } = window.firebase;
             const roomRef = doc(db, "rooms", roomId);
-
             if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
             AppState.mode = 'room'; AppState.roomId = roomId;
             
@@ -374,15 +378,13 @@
                     AppState = { ...AppState, ...data };
                     renderAll();
                     roomNameDisplay.textContent = data.roomName;
-                    currentUserDisplay.textContent = `You are logged in as: ${sessionStorage.getItem('currentUserName')}`;
+                    currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
                 }
             });
             
             closeModal('loadingModal');
-            welcomeScreen.style.display = 'none';
-            appContainer.style.display = 'block';
-            roomInfoBar.style.display = 'block';
-            manualAddFriendSection.style.display = 'flex'; // Show manual add in rooms too now
+            welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
+            roomInfoBar.style.display = 'block'; manualAddFriendSection.style.display = 'flex';
             roomCodeDisplay.textContent = roomId;
             appSubtitle.textContent = `You are in a collaborative room.`;
         }
@@ -395,34 +397,22 @@
             catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); }
         }
 
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
+        function generateRoomId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
         // --- CORE LOGIC FUNCTIONS ---
         function addFriend() {
             const friendName = friendNameInput.value.trim();
             if (!friendName) { showAlert("Please enter a friend's name."); return; }
             if (AppState.friends.includes(friendName)) { showAlert(`"${friendName}" is already in the group.`); return; }
-            
-            if (AppState.mode === 'room') {
-                const { arrayUnion } = window.firebase;
-                updateFirestore({ friends: arrayUnion(friendName) });
-            } else { 
-                AppState.friends.push(friendName);
-                renderAll(); 
-            }
+            if (AppState.mode === 'room') { updateFirestore({ friends: window.firebase.arrayUnion(friendName) }); } 
+            else { AppState.friends.push(friendName); renderAll(); }
             friendNameInput.value = "";
         };
 
         function removeFriend(index) {
             const friendToRemove = AppState.friends[index];
             const newFriends = AppState.friends.filter((_, i) => i !== index);
-            const newItems = AppState.items.map(item => ({
-                ...item,
-                sharers: item.sharers.filter(sharer => sharer !== friendToRemove)
-            }));
-            
+            const newItems = AppState.items.map(item => ({...item, sharers: item.sharers.filter(s => s !== friendToRemove) }));
             if (AppState.mode === 'room') updateFirestore({ friends: newFriends, items: newItems });
             else { AppState.friends = newFriends; AppState.items = newItems; renderAll(); }
         };
@@ -431,26 +421,13 @@
             const itemName = document.getElementById('itemNameInput').value.trim();
             const itemCost = parseFloat(document.getElementById('itemCostInput').value);
             if (!itemName || isNaN(itemCost) || itemCost < 0) { showAlert("Please enter valid item name and cost."); return; }
-            
-            // In the new flow, an item is added with no sharers initially. Users opt-in.
             const newItem = { name: itemName, cost: itemCost, sharers: [] };
-            
-            if (AppState.mode === 'room') {
-                const { arrayUnion } = window.firebase;
-                updateFirestore({ items: arrayUnion(newItem) });
-            } else { 
-                AppState.items.push(newItem);
-                renderItemsList(); 
-            }
-            
-            document.getElementById('itemNameInput').value = "";
-            document.getElementById('itemCostInput').value = "";
+            if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
+            else { AppState.items.push(newItem); renderItemsList(); }
+            document.getElementById('itemNameInput').value = ""; document.getElementById('itemCostInput').value = "";
         };
         
         function removeItemFromSplit(index) {
-             const itemToRemove = AppState.items[index];
-             // In Firestore, there's no easy way to remove an item by index.
-             // The simplest way is to overwrite the whole array.
              const newItems = AppState.items.filter((_, i) => i !== index);
              if (AppState.mode === 'room') updateFirestore({ items: newItems });
              else { AppState.items = newItems; renderItemsList(); }
@@ -458,43 +435,16 @@
 
         function toggleMyShare(itemIndex) {
             const currentUserName = sessionStorage.getItem('currentUserName');
-            if (!currentUserName) {
-                showAlert("Your name is not set. Please rejoin the room.");
-                return;
-            }
-
+            if (!currentUserName || AppState.mode !== 'room') return;
             const itemToUpdate = AppState.items[itemIndex];
             const isUserSharing = itemToUpdate.sharers.includes(currentUserName);
-            
-            // For Firestore, use arrayUnion/arrayRemove for atomic updates
-            const { arrayUnion, arrayRemove } = window.firebase;
-            const updatePayload = {
-                // We need to identify the item to update. This is tricky.
-                // A better approach is to update the entire items array.
-            };
-
-            // Create a deep copy of the items to modify
             const newItems = JSON.parse(JSON.stringify(AppState.items));
             const sharers = newItems[itemIndex].sharers;
-
             if (isUserSharing) {
-                // Remove user
                 const userIndex = sharers.indexOf(currentUserName);
-                if (userIndex > -1) {
-                    sharers.splice(userIndex, 1);
-                }
-            } else {
-                // Add user
-                sharers.push(currentUserName);
-            }
-            
-            // Now update the state/firestore
-            if (AppState.mode === 'room') {
-                updateFirestore({ items: newItems });
-            } else {
-                AppState.items = newItems;
-                renderItemsList();
-            }
+                if (userIndex > -1) sharers.splice(userIndex, 1);
+            } else { sharers.push(currentUserName); }
+            updateFirestore({ items: newItems });
         }
         
         function updateBillDetails() {
@@ -509,20 +459,16 @@
         };
 
         async function processBillImageWithOpenAI() {
-            // TODO: REPLACE "YOUR_OPENAI_API_KEY_HERE" with your actual OpenAI API Key
             const openAiApiKey = "YOUR_OPENAI_API_KEY_HERE";
             if (openAiApiKey.includes("YOUR_")) { showAlert("OpenAI API Key not found in script."); return; }
             if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; }
-            
             loadingModalText.textContent = "Processing Bill..."; showModal('loadingModal');
             processBillBtn.disabled = true;
-
             const reader = new FileReader();
             reader.onloadend = async function() {
                 const base64ImageDataWithPrefix = reader.result;
                 const apiUrl = "https://api.openai.com/v1/chat/completions";
                 const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (GST, VAT, etc.) and their costs. Format each as: ITEM_NAME - COST. Example: Masala Dosa - 150.00. If unidentifiable, respond with "NO_ITEMS_EXTRACTED".`;
-
                 const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix }}] }], max_tokens: 1000 };
                 try {
                     const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) });
@@ -533,10 +479,7 @@
                     ocrRawOutput.style.display = 'block';
                     parseAndDisplayExtractedItems(extractedText);
                 } catch (error) { showAlert(`OpenAI Error: ${error.message}`); } 
-                finally {
-                    closeModal('loadingModal'); processBillBtn.disabled = false;
-                    document.getElementById('reviewExtractedItemsSection').style.display = 'block';
-                }
+                finally { closeModal('loadingModal'); processBillBtn.disabled = false; document.getElementById('reviewExtractedItemsSection').style.display = 'block'; }
             };
             reader.readAsDataURL(billImageInput.files[0]);
         }
@@ -553,8 +496,6 @@
                     if (name && !isNaN(cost) && cost >= 0) AppState.extractedBillItems.push({ name, cost, sharers: [] });
                 }
             });
-            // This function should now just update the state.
-            // A separate render function will display it.
             renderExtractedItemsForReview();
         }
 
@@ -563,28 +504,78 @@
             const name = document.getElementById(`ocr-item-${index}-name`).value.trim();
             const cost = parseFloat(document.getElementById(`ocr-item-${index}-cost`).value);
             if (!name || isNaN(cost) || cost < 0) { showAlert("Invalid name or cost."); return; }
-            
-            // When adding an item, it should now have an empty sharers array initially
             const newItem = { name: name, cost: cost, sharers: [] };
-            const newItems = [...AppState.items, newItem];
             AppState.extractedBillItems.splice(index, 1);
-            
-            if (AppState.mode === 'room') {
-                updateFirestore({ items: newItems });
-            } else {
-                AppState.items = newItems;
-            }
+            if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
+            else { AppState.items.push(newItem); }
             renderAll();
         }
 
         function calculateSplit() {
-            // This function's logic remains the same, as it works off the final AppState.
-            // (Code is the same as previous version)
+            if (AppState.friends.length === 0) { showAlert("Add friends first."); return; }
+            if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
+            if (!AppState.totalBill && AppState.totalBill !== 0) { showAlert("Enter total bill amount (₹)."); return; }
+            let individualOwes = {};
+            AppState.friends.forEach(friend => individualOwes[friend] = 0);
+            let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
+            AppState.items.forEach(item => {
+                if (item.sharers.length > 0) {
+                    const costPerSharer = item.cost / item.sharers.length;
+                    item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; });
+                }
+            });
+            let totalDiscountAmount = 0;
+            if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) {
+                totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue;
+                if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost;
+            }
+            let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
+            if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
+                 AppState.friends.forEach(friend => {
+                    const originalShare = individualOwes[friend];
+                    if (originalShare > 0) {
+                        const proportionOfTotal = originalShare / originalTotalItemizedCost;
+                        const discountForFriend = totalDiscountAmount * proportionOfTotal;
+                        individualOwes[friend] = Math.max(0, originalShare - discountForFriend);
+                    }
+                });
+            }
+            individualSplitsDisplay.innerHTML = AppState.friends.map(friend => {
+                const owesAmount = individualOwes[friend] || 0;
+                const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return `<p class="p-3 bg-white border border-slate-200 rounded-md shadow-sm"><span class="font-semibold">${safeFriendName}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
+            }).join('');
+            originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
+            discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
+            discountAppliedText.textContent = `Discount Applied: -₹${totalDiscountAmount.toFixed(2)}`;
+            finalItemizedCostText.textContent = `Final Itemized Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
+            const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
+            unaccountedMoneyText.textContent = unaccountedMoney >= 0 ? `Unaccounted (Surplus/Tip?): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
+            unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney >=0 ? 'text-green-600' : 'text-red-600'}`;
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
         }
 
         async function generateAndShowImage() {
-            // This function's logic remains the same.
-            // (Code is the same as previous version)
+            if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
+            const resultsToCapture = document.getElementById('resultsToCapture');
+            const originalBg = resultsToCapture.style.backgroundColor;
+            const originalPadding = resultsToCapture.style.padding;
+            resultsToCapture.style.backgroundColor = 'white';
+            resultsToCapture.style.padding = '20px';
+            try {
+                const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false });
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+                const imageDataUrl = canvas.toDataURL('image/png');
+                document.getElementById('generatedImagePreview').src = imageDataUrl;
+                document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); };
+                showModal('imagePreviewModal');
+            } catch (error) {
+                console.error("Image gen error:", error); showAlert("Error generating image.");
+                resultsToCapture.style.backgroundColor = originalBg;
+                resultsToCapture.style.padding = originalPadding;
+            }
         }
         
         // --- GLOBAL FUNCTION EXPOSURE ---
