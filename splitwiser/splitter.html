@@ -15,7 +15,7 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // TODO: Replace with your actual Firebase config object
-  const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -120,7 +120,7 @@
                     <label for="billImageInput" class="block text-sm font-medium text-slate-700 mb-1">Select Bill Image:</label>
                     <input type="file" id="billImageInput" accept="image/png, image/jpeg, image/webp" class="w-full p-2 border border-slate-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200">
                     <img id="billImagePreview" src="#" alt="Bill preview" class="mt-3 rounded-lg max-h-60 w-auto shadow-sm" style="display:none;">
-                    <button onclick="processBillImageWithOpenAI()" id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50" disabled>Process Image with OpenAI</button>
+                    <button id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50" disabled>Process Image with OpenAI</button>
                     <p class="text-xs text-slate-500 mt-2">Always review extracted items (including taxes).</p>
                 </div>
             </section>
@@ -139,13 +139,13 @@
                     <div><label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label><input type="text" id="itemNameInput" placeholder="e.g., Pizza" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                     <div><label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label><input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                 </div>
-                <button onclick="addItemManually()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item</button>
+                <button id="addItemManuallyBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item</button>
             </section>
             
             <!-- Final App Sections (unchanged) -->
             <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow"><h2 class="text-2xl font-semibold text-sky-700 mb-4">📋 Items Added for Splitting</h2><div id="itemsListContainer" class="max-h-96 overflow-y-auto custom-scrollbar space-y-3"><p id="noItemsMsg" class="text-slate-500">No items added yet.</p></div></section>
-            <section class="mb-8 text-center"><button onclick="calculateSplit()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
-            <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText"></p><p id="discountAppliedText"></p><p id="finalItemizedCostText"></p><p id="unaccountedMoneyText"></p></div></div><div class="mt-8 text-center"><button onclick="generateAndShowImage()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">🖼️ Share Results Image</button></div></section>
+            <section class="mb-8 text-center"><button id="calculateSplitBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
+            <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText"></p><p id="discountAppliedText"></p><p id="finalItemizedCostText"></p><p id="unaccountedMoneyText"></p></div></div><div class="mt-8 text-center"><button id="generateImageBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">🖼️ Share Results Image</button></div></section>
         </div>
     </div>
     
@@ -155,504 +155,449 @@
     <div id="loadingModal" class="modal"><div class="modal-content"><p id="loadingModalText" class="text-lg text-slate-700 mb-2">Processing...</p><div class="spinner"></div></div></div>
 
     <script type="module">
-        // --- CHECK FIREBASE INITIALIZATION ---
-        if (!window.firebase) {
-            document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CHECK FIREBASE INITIALIZATION ---
+            if (!window.firebase) {
                 const welcomeContainer = document.getElementById('welcomeScreen');
                 if (welcomeContainer) {
                     welcomeContainer.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-2xl text-red-600"><h1 class="text-3xl font-bold">Connection Error</h1><p class="mt-4">Could not connect to the database service.</p><p class="mt-2">Please ensure you have correctly added your Firebase configuration object in the script.</p></div>`;
                 }
-            });
-        }
-
-        // --- GLOBAL APP STATE ---
-        let AppState = {
-            mode: 'solo', roomId: null, roomUnsubscribe: null,
-            friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', extractedBillItems: [],
-            permissions: { canEdit: true } // Default permissions
-        };
-        
-        // --- DOM Elements ---
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        const appContainer = document.getElementById('appContainer');
-        const roomInfoBar = document.getElementById('roomInfoBar');
-        const roomNameDisplay = document.getElementById('roomNameDisplay');
-        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-        const currentUserDisplay = document.getElementById('currentUserDisplay');
-        const permissionStatus = document.getElementById('permissionStatus');
-        const appSubtitle = document.getElementById('appSubtitle');
-        const friendNameInput = document.getElementById('friendNameInput');
-        const friendsTagsContainer = document.getElementById('friendsTags');
-        const totalBillInput = document.getElementById('totalBillInput');
-        const discountValueInput = document.getElementById('discountValueInput');
-        const discountTypeSelect = document.getElementById('discountTypeSelect');
-        const itemsListContainer = document.getElementById('itemsListContainer');
-        const noItemsMsg = document.getElementById('noItemsMsg');
-        const manualAddFriendSection = document.getElementById('manualAddFriendSection');
-        const ocrSection = document.getElementById('ocrSection');
-        const manualItemSection = document.getElementById('manualItemSection');
-        const billSection = document.getElementById('billSection');
-        const extractedItemsReviewContainer = document.getElementById('extractedItemsReviewContainer');
-        const openAiApiKeyInput = document.getElementById('openAiApiKeyInput');
-        const billImageInput = document.getElementById('billImageInput');
-        const billImagePreview = document.getElementById('billImagePreview');
-        const processBillBtn = document.getElementById('processBillBtn');
-        const loadingModalText = document.getElementById('loadingModalText');
-        const resultsSection = document.getElementById('resultsSection');
-        const individualSplitsDisplay = document.getElementById('individualSplitsDisplay');
-        const originalItemizedCostText = document.getElementById('originalItemizedCostText');
-        const discountAppliedText = document.getElementById('discountAppliedText');
-        const finalItemizedCostText = document.getElementById('finalItemizedCostText');
-        const unaccountedMoneyText = document.getElementById('unaccountedMoneyText');
-        
-        // --- UTILITY & MODAL FUNCTIONS ---
-        function showModal(modalId) { document.getElementById(modalId).style.display = "block"; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
-        function showAlert(message) { document.getElementById('modalMessageText').textContent = message; showModal('customAlertModal'); }
-        window.closeModal = closeModal;
-        window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
-
-        // --- UI RENDERERS ---
-        function renderAll() {
-            renderFriends();
-            renderItemsList();
-            renderBillDetails();
-            applyPermissions();
-        }
-
-        function renderFriends() {
-            const currentUserName = sessionStorage.getItem('currentUserName');
-            friendsTagsContainer.innerHTML = AppState.friends.length === 0 ? '<p class="text-slate-500">No friends added yet.</p>' :
-                AppState.friends.map((friend, index) => {
-                    const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    const isCurrentUser = friend === currentUserName;
-                    const isHost = index === 0 && AppState.mode === 'room';
-                    
-                    let friendPill = `<span class="bg-sky-200 text-sky-800 text-sm font-medium px-3 py-1.5 rounded-full flex items-center shadow-sm">
-                        ${isHost ? '👑' : ''} ${safeFriendName} ${isCurrentUser ? '(You)' : ''}`;
-                    
-                    // Only host can remove people
-                    if (currentUserName === AppState.friends[0] || AppState.mode === 'solo') {
-                         friendPill += `<button onclick="removeFriend(${index})" class="ml-2 text-sky-600 hover:text-red-500 font-bold text-lg leading-none">&times;</button>`;
-                    }
-                    friendPill += `</span>`;
-                    return friendPill;
-                }).join('');
-        }
-        
-        function renderItemsList() {
-            noItemsMsg.style.display = AppState.items.length === 0 ? 'block' : 'none';
-            const currentUserName = sessionStorage.getItem('currentUserName');
-            const canEdit = AppState.permissions.canEdit || currentUserName === AppState.friends[0] || AppState.mode === 'solo';
-
-            itemsListContainer.innerHTML = AppState.items.map((item, index) => {
-                 const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                 const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
-                 const isUserSharing = item.sharers.includes(currentUserName);
-                 
-                 const removeButton = canEdit ? `<button onclick="removeItemFromSplit(${index})" class="text-red-500 hover:text-red-700 font-semibold py-1 px-2 rounded text-sm flex-shrink-0">Remove</button>` : '';
-
-                 const selfClaimCheckbox = (AppState.mode === 'room' && currentUserName) ?
-                    `<div class="mt-3 pt-3 border-t border-slate-200">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" onchange="toggleMyShare(${index})" ${isUserSharing ? 'checked' : ''} class="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500">
-                            <span class="ml-3 font-semibold text-green-700">I had this</span>
-                        </label>
-                     </div>` : '';
-
-                 return `<div class="p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-semibold text-slate-800 text-lg">${safeItemName}</p>
-                            <p class="text-slate-600 font-bold text-md">₹${item.cost.toFixed(2)}</p>
-                            <p class="text-sm text-slate-500 mt-1">Shared by: ${safeSharers || 'No one yet'}</p>
-                        </div>
-                        ${removeButton}
-                    </div>
-                    ${selfClaimCheckbox}
-                </div>`;
-            }).join('');
-        }
-
-        function renderBillDetails() {
-            if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || '';
-            if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || '';
-            if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType;
-        }
-
-        function applyPermissions() {
-            const currentUserName = sessionStorage.getItem('currentUserName');
-            const isHost = currentUserName === AppState.friends[0];
-            const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
-
-            const sectionsToToggle = [billSection, ocrSection, manualItemSection, manualAddFriendSection];
-            
-            if (canEdit) {
-                sectionsToToggle.forEach(sec => sec.classList.remove('permission-denied'));
-                totalBillInput.disabled = false;
-                discountValueInput.disabled = false;
-                discountTypeSelect.disabled = false;
-                if (permissionStatus) permissionStatus.textContent = isHost ? 'You are the Host (Full Control)' : 'Editing is enabled for all';
-            } else {
-                sectionsToToggle.forEach(sec => sec.classList.add('permission-denied'));
-                totalBillInput.disabled = true;
-                discountValueInput.disabled = true;
-                discountTypeSelect.disabled = true;
-                if (permissionStatus) permissionStatus.textContent = 'View-Only Mode (Host is managing items)';
+                return; // Stop execution if firebase is not available
             }
-        }
-        
-        // --- SESSION MANAGEMENT ---
-        function startSoloSession() {
-            AppState.mode = 'solo'; AppState.roomId = null;
-            AppState.permissions.canEdit = true;
-            if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-            welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
-            roomInfoBar.style.display = 'none';
-            appSubtitle.textContent = 'Splitting bill in Solo Mode.';
-            resetLocalState();
-            applyPermissions();
-        };
-        
-        function showCreateRoomPrompt() {
-            const creatorName = prompt("First, what is your name?");
-            if (!creatorName || !creatorName.trim()) return;
 
-            const roomName = prompt(`Great, ${creatorName}! Now, what should the room be called? (e.g., 'Goa Trip')`);
-            if (!roomName || !roomName.trim()) return;
-            
-            // This is a browser-native confirm dialog
-            const allowEdits = confirm("Allow other participants to add/remove items and bill details?\n\nOK = Yes, Allow\nCancel = No, View-Only for them");
-            
-            createRoom(roomName.trim(), creatorName.trim(), allowEdits);
-        };
-
-        function showJoinRoomPrompt() {
-            const joinerName = prompt("First, what is your name?");
-            if (!joinerName || !joinerName.trim()) return;
-
-            const roomId = prompt("Enter the 6-character Room Code to join:");
-            if (roomId && roomId.trim()) {
-                joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
-            }
-        };
-
-        function leaveRoom() {
-            if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-            sessionStorage.removeItem('currentUserName');
-            AppState.mode = 'solo'; AppState.roomId = null;
-            appContainer.style.display = 'none'; welcomeScreen.style.display = 'block';
-            resetLocalState();
-        };
-        
-        function copyRoomCode() {
-            const code = roomCodeDisplay.textContent;
-            const textArea = document.createElement("textarea");
-            textArea.value = code; document.body.appendChild(textArea); textArea.select();
-            try { document.execCommand('copy'); showAlert(`Room Code "${code}" copied!`); } 
-            catch (err) { showAlert('Failed to copy code.'); }
-            document.body.removeChild(textArea);
-        }
-
-        function resetLocalState() {
-            AppState = { ...AppState, friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', extractedBillItems: [] };
-            renderAll();
-        }
-
-        // --- FIRESTORE INTERACTION ---
-        async function createRoom(roomName, creatorName, allowEdits) {
-            if (!window.firebase) { showAlert('Database connection not available.'); return; }
-            const { db, doc, setDoc, serverTimestamp } = window.firebase;
-            const roomId = generateRoomId();
-            const roomRef = doc(db, "rooms", roomId);
-            loadingModalText.textContent = 'Creating room...'; showModal('loadingModal');
-            try {
-                await setDoc(roomRef, {
-                    roomName, createdAt: serverTimestamp(),
-                    friends: [creatorName], items: [], totalBill: 0, discountValue: 0, discountType: 'amount',
-                    permissions: { canEdit: allowEdits } // Save the permission setting
-                });
-                sessionStorage.setItem('currentUserName', creatorName);
-                startListeningToRoom(roomId);
-            } catch(error) {
-                console.error("Error creating room: ", error); showAlert("Could not create room."); closeModal('loadingModal');
-            }
-        }
-        
-        async function joinRoom(roomId, joinerName) {
-            if (!window.firebase) { showAlert('Database connection not available.'); return; }
-            const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase;
-            const roomRef = doc(db, "rooms", roomId);
-            loadingModalText.textContent = 'Joining room...'; showModal('loadingModal');
-            try {
-                const docSnap = await getDoc(roomRef);
-                if (!docSnap.exists()) throw new Error("Room not found.");
-                await updateDoc(roomRef, { friends: arrayUnion(joinerName) });
-                sessionStorage.setItem('currentUserName', joinerName);
-                startListeningToRoom(roomId);
-            } catch(error) {
-                console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal');
-            }
-        }
-        
-        function startListeningToRoom(roomId) {
-            const { db, doc, onSnapshot } = window.firebase;
-            const roomRef = doc(db, "rooms", roomId);
-            if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-            AppState.mode = 'room'; AppState.roomId = roomId;
-            
-            AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
-                console.log("Received room update");
-                const data = doc.data();
-                if (data) {
-                    AppState = { ...AppState, ...data };
-                    renderAll();
-                    roomNameDisplay.textContent = data.roomName;
-                    currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
-                }
-            });
-            
-            closeModal('loadingModal');
-            welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
-            roomInfoBar.style.display = 'block';
-            roomCodeDisplay.textContent = roomId;
-            appSubtitle.textContent = `You are in a collaborative room.`;
-        }
-
-        async function updateFirestore(newData) {
-            if (AppState.mode !== 'room' || !AppState.roomId) return;
-            const { db, doc, updateDoc } = window.firebase;
-            const roomRef = doc(db, "rooms", AppState.roomId);
-            try { await updateDoc(roomRef, newData); } 
-            catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); }
-        }
-
-        function generateRoomId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
-
-        // --- CORE LOGIC FUNCTIONS ---
-        function addFriend() {
-            const friendName = friendNameInput.value.trim();
-            if (!friendName) { showAlert("Please enter a friend's name."); return; }
-            if (AppState.friends.includes(friendName)) { showAlert(`"${friendName}" is already in the group.`); return; }
-            if (AppState.mode === 'room') { updateFirestore({ friends: window.firebase.arrayUnion(friendName) }); } 
-            else { AppState.friends.push(friendName); renderAll(); }
-            friendNameInput.value = "";
-        };
-
-        function removeFriend(index) {
-            const friendToRemove = AppState.friends[index];
-            const newFriends = AppState.friends.filter((_, i) => i !== index);
-            const newItems = AppState.items.map(item => ({...item, sharers: item.sharers.filter(s => s !== friendToRemove) }));
-            if (AppState.mode === 'room') updateFirestore({ friends: newFriends, items: newItems });
-            else { AppState.friends = newFriends; AppState.items = newItems; renderAll(); }
-        };
-        
-        function addItemManually() {
-            const itemName = document.getElementById('itemNameInput').value.trim();
-            const itemCost = parseFloat(document.getElementById('itemCostInput').value);
-            if (!itemName || isNaN(itemCost) || itemCost < 0) { showAlert("Please enter valid item name and cost."); return; }
-            const newItem = { name: itemName, cost: itemCost, sharers: [] };
-            if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
-            else { AppState.items.push(newItem); renderItemsList(); }
-            document.getElementById('itemNameInput').value = ""; document.getElementById('itemCostInput').value = "";
-        };
-        
-        function removeItemFromSplit(index) {
-             const newItems = AppState.items.filter((_, i) => i !== index);
-             if (AppState.mode === 'room') updateFirestore({ items: newItems });
-             else { AppState.items = newItems; renderItemsList(); }
-        };
-
-        function toggleMyShare(itemIndex) {
-            const currentUserName = sessionStorage.getItem('currentUserName');
-            if (!currentUserName || AppState.mode !== 'room') return;
-            const newItems = JSON.parse(JSON.stringify(AppState.items));
-            const sharers = newItems[itemIndex].sharers;
-            const isUserSharing = sharers.includes(currentUserName);
-            if (isUserSharing) {
-                const userIndex = sharers.indexOf(currentUserName);
-                if (userIndex > -1) sharers.splice(userIndex, 1);
-            } else { sharers.push(currentUserName); }
-            updateFirestore({ items: newItems });
-        }
-        
-        function updateBillDetails() {
-            const newTotalBill = parseFloat(totalBillInput.value) || 0;
-            const newDiscountValue = parseFloat(discountValueInput.value) || 0;
-            const newDiscountType = discountTypeSelect.value;
-            const updatePayload = { totalBill: newTotalBill, discountValue: newDiscountValue, discountType: newDiscountType };
-            if (AppState.mode === 'room') {
-                 if (window.billUpdateTimeout) clearTimeout(window.billUpdateTimeout);
-                 window.billUpdateTimeout = setTimeout(() => updateFirestore(updatePayload), 500);
-            } else { AppState = {...AppState, ...updatePayload }; }
-        };
-
-        async function processBillImageWithOpenAI() {
-            const openAiApiKey = openAiApiKeyInput.value.trim();
-            if (!openAiApiKey) { showAlert("Please enter your OpenAI API Key."); return; }
-            if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; }
-            loadingModalText.textContent = "Processing Bill..."; showModal('loadingModal');
-            processBillBtn.disabled = true;
-            const reader = new FileReader();
-            reader.onloadend = async function() {
-                const base64ImageDataWithPrefix = reader.result;
-                const apiUrl = "https://api.openai.com/v1/chat/completions";
-                const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (GST, VAT, etc.) and their costs. Format each as: ITEM_NAME - COST. Example: Masala Dosa - 150.00. If unidentifiable, respond with "NO_ITEMS_EXTRACTED".`;
-                const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix }}] }], max_tokens: 1000 };
-                try {
-                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) });
-                    if (!response.ok) { const d = await response.json(); throw new Error(d.error.message); }
-                    const result = await response.json();
-                    const extractedText = result.choices[0].message.content.trim();
-                    document.getElementById('ocrRawOutput').textContent = "Raw Output:\n" + extractedText;
-                    document.getElementById('ocrRawOutput').style.display = 'block';
-                    parseAndDisplayExtractedItems(extractedText);
-                } catch (error) { showAlert(`OpenAI Error: ${error.message}`); } 
-                finally { closeModal('loadingModal'); processBillBtn.disabled = false; document.getElementById('reviewExtractedItemsSection').style.display = 'block'; }
+            // --- GLOBAL APP STATE ---
+            let AppState = {
+                mode: 'solo', roomId: null, roomUnsubscribe: null,
+                friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', extractedBillItems: [],
+                permissions: { canEdit: true }
             };
-            reader.readAsDataURL(billImageInput.files[0]);
-        }
-        
-        function parseAndDisplayExtractedItems(text) {
-            AppState.extractedBillItems = [];
-            const lines = text.split('\n');
-            const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/;
-            lines.forEach(line => {
-                const match = line.trim().match(itemRegex);
-                if (match) {
-                    const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim();
-                    const cost = parseFloat(match[2]);
-                    if (name && !isNaN(cost) && cost >= 0) AppState.extractedBillItems.push({ name, cost, sharers: [] });
-                }
-            });
-            renderExtractedItemsForReview();
-        }
-        
-        function renderExtractedItemsForReview() {
-             extractedItemsReviewContainer.innerHTML = "";
-            if (!AppState.extractedBillItems || AppState.extractedBillItems.length === 0) {
-                document.getElementById('noExtractedItemsMsg').style.display = 'block';
-                return;
-            }
-            document.getElementById('noExtractedItemsMsg').style.display = 'none';
-            AppState.extractedBillItems.forEach((item, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
-                const sanitizedItemName = item.name.replace(/"/g, "&quot;");
-                itemDiv.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
-                    <div><label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label><input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm"></div>
-                    <div><label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label><input type="number" id="ocr-item-${index}-cost" value="${item.cost.toFixed(2)}" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm"></div>
-                    </div>
-                    <div class="mt-4"><button onclick="addExtractedItemToSplit(${index})" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-md text-sm whitespace-nowrap">Add to Split List</button></div>`;
-                extractedItemsReviewContainer.appendChild(itemDiv);
-            });
-        }
+            
+            // --- DOM Elements ---
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const appContainer = document.getElementById('appContainer');
+            const roomInfoBar = document.getElementById('roomInfoBar');
+            const roomNameDisplay = document.getElementById('roomNameDisplay');
+            const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+            const currentUserDisplay = document.getElementById('currentUserDisplay');
+            const permissionStatus = document.getElementById('permissionStatus');
+            const appSubtitle = document.getElementById('appSubtitle');
+            const friendNameInput = document.getElementById('friendNameInput');
+            const friendsTagsContainer = document.getElementById('friendsTags');
+            const totalBillInput = document.getElementById('totalBillInput');
+            const discountValueInput = document.getElementById('discountValueInput');
+            const discountTypeSelect = document.getElementById('discountTypeSelect');
+            const itemsListContainer = document.getElementById('itemsListContainer');
+            const noItemsMsg = document.getElementById('noItemsMsg');
+            const manualAddFriendSection = document.getElementById('manualAddFriendSection');
+            const ocrSection = document.getElementById('ocrSection');
+            const manualItemSection = document.getElementById('manualItemSection');
+            const billSection = document.getElementById('billSection');
+            const extractedItemsReviewContainer = document.getElementById('extractedItemsReviewContainer');
+            const openAiApiKeyInput = document.getElementById('openAiApiKeyInput');
+            const billImageInput = document.getElementById('billImageInput');
+            const billImagePreview = document.getElementById('billImagePreview');
+            const processBillBtn = document.getElementById('processBillBtn');
+            const loadingModalText = document.getElementById('loadingModalText');
+            const resultsSection = document.getElementById('resultsSection');
+            const individualSplitsDisplay = document.getElementById('individualSplitsDisplay');
+            const originalItemizedCostText = document.getElementById('originalItemizedCostText');
+            const discountAppliedText = document.getElementById('discountAppliedText');
+            const finalItemizedCostText = document.getElementById('finalItemizedCostText');
+            const unaccountedMoneyText = document.getElementById('unaccountedMoneyText');
+            
+            // --- UTILITY & MODAL FUNCTIONS ---
+            function showModal(modalId) { document.getElementById(modalId).style.display = "block"; }
+            function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+            function showAlert(message) { document.getElementById('modalMessageText').textContent = message; showModal('customAlertModal'); }
+            window.closeModal = closeModal;
+            window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
 
-        function addExtractedItemToSplit(index) {
-            const name = document.getElementById(`ocr-item-${index}-name`).value.trim();
-            const cost = parseFloat(document.getElementById(`ocr-item-${index}-cost`).value);
-            if (!name || isNaN(cost) || cost < 0) { showAlert("Invalid name or cost."); return; }
-            const newItem = { name: name, cost: cost, sharers: [] };
-            AppState.extractedBillItems.splice(index, 1);
-            if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
-            else { AppState.items.push(newItem); }
-            renderAll();
-        }
-
-        function calculateSplit() {
-            if (AppState.friends.length === 0) { showAlert("Add friends first."); return; }
-            if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
-            if (!AppState.totalBill && AppState.totalBill !== 0) { showAlert("Enter total bill amount (₹)."); return; }
-            let individualOwes = {};
-            AppState.friends.forEach(friend => individualOwes[friend] = 0);
-            let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
-            AppState.items.forEach(item => {
-                if (item.sharers.length > 0) {
-                    const costPerSharer = item.cost / item.sharers.length;
-                    item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; });
-                }
-            });
-            let totalDiscountAmount = 0;
-            if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) {
-                totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue;
-                if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost;
+            // --- UI RENDERERS ---
+            function renderAll() {
+                renderFriends(); renderItemsList(); renderBillDetails(); applyPermissions();
             }
-            let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
-            if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
-                 AppState.friends.forEach(friend => {
-                    const originalShare = individualOwes[friend];
-                    if (originalShare > 0) {
-                        const proportionOfTotal = originalShare / originalTotalItemizedCost;
-                        const discountForFriend = totalDiscountAmount * proportionOfTotal;
-                        individualOwes[friend] = Math.max(0, originalShare - discountForFriend);
+
+            function renderFriends() {
+                const currentUserName = sessionStorage.getItem('currentUserName');
+                friendsTagsContainer.innerHTML = AppState.friends.length === 0 ? '<p class="text-slate-500">No friends added yet.</p>' :
+                    AppState.friends.map((friend, index) => {
+                        const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const isCurrentUser = friend === currentUserName;
+                        const isHost = index === 0 && AppState.mode === 'room';
+                        let friendPill = `<span class="bg-sky-200 text-sky-800 text-sm font-medium px-3 py-1.5 rounded-full flex items-center shadow-sm">${isHost ? '👑' : ''} ${safeFriendName} ${isCurrentUser ? '(You)' : ''}`;
+                        if (currentUserName === AppState.friends[0] || AppState.mode === 'solo') {
+                             friendPill += `<button onclick="removeFriend(${index})" class="ml-2 text-sky-600 hover:text-red-500 font-bold text-lg leading-none">&times;</button>`;
+                        }
+                        friendPill += `</span>`;
+                        return friendPill;
+                    }).join('');
+            }
+            
+            function renderItemsList() {
+                noItemsMsg.style.display = AppState.items.length === 0 ? 'block' : 'none';
+                const currentUserName = sessionStorage.getItem('currentUserName');
+                const isHost = currentUserName === AppState.friends[0];
+                const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
+                itemsListContainer.innerHTML = AppState.items.map((item, index) => {
+                     const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                     const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
+                     const isUserSharing = item.sharers.includes(currentUserName);
+                     const removeButton = canEdit ? `<button onclick="removeItemFromSplit(${index})" class="text-red-500 hover:text-red-700 font-semibold py-1 px-2 rounded text-sm flex-shrink-0">Remove</button>` : '';
+                     const selfClaimCheckbox = (AppState.mode === 'room' && currentUserName) ? `<div class="mt-3 pt-3 border-t border-slate-200"><label class="flex items-center cursor-pointer"><input type="checkbox" onchange="toggleMyShare(${index})" ${isUserSharing ? 'checked' : ''} class="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500"><span class="ml-3 font-semibold text-green-700">I had this</span></label></div>` : '';
+                     return `<div class="p-4 bg-white border border-slate-200 rounded-lg shadow-sm"><div class="flex justify-between items-start"><div><p class="font-semibold text-slate-800 text-lg">${safeItemName}</p><p class="text-slate-600 font-bold text-md">₹${item.cost.toFixed(2)}</p><p class="text-sm text-slate-500 mt-1">Shared by: ${safeSharers || 'No one yet'}</p></div>${removeButton}</div>${selfClaimCheckbox}</div>`;
+                }).join('');
+            }
+
+            function renderBillDetails() {
+                if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || '';
+                if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || '';
+                if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType;
+            }
+
+            function applyPermissions() {
+                const currentUserName = sessionStorage.getItem('currentUserName');
+                const isHost = currentUserName === AppState.friends[0];
+                const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
+                const sectionsToToggle = [billSection, ocrSection, manualItemSection, manualAddFriendSection];
+                if (canEdit) {
+                    sectionsToToggle.forEach(sec => sec.classList.remove('permission-denied'));
+                    totalBillInput.disabled = false; discountValueInput.disabled = false; discountTypeSelect.disabled = false;
+                    if (permissionStatus) permissionStatus.textContent = isHost ? 'You are the Host (Full Control)' : 'Editing is enabled for all';
+                } else {
+                    sectionsToToggle.forEach(sec => sec.classList.add('permission-denied'));
+                    totalBillInput.disabled = true; discountValueInput.disabled = true; discountTypeSelect.disabled = true;
+                    if (permissionStatus) permissionStatus.textContent = 'View-Only Mode (Host is managing items)';
+                }
+            }
+            
+            // --- SESSION MANAGEMENT ---
+            function startSoloSession() {
+                AppState.mode = 'solo'; AppState.roomId = null; AppState.permissions.canEdit = true;
+                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
+                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
+                roomInfoBar.style.display = 'none'; appSubtitle.textContent = 'Splitting bill in Solo Mode.';
+                resetLocalState(); applyPermissions();
+            };
+            
+            function showCreateRoomPrompt() {
+                const creatorName = prompt("First, what is your name?");
+                if (!creatorName || !creatorName.trim()) return;
+                const roomName = prompt(`Great, ${creatorName}! Now, what should the room be called? (e.g., 'Goa Trip')`);
+                if (!roomName || !roomName.trim()) return;
+                const allowEdits = confirm("Allow other participants to add/remove items and bill details?\n\nOK = Yes, Allow\nCancel = No, View-Only for them");
+                createRoom(roomName.trim(), creatorName.trim(), allowEdits);
+            };
+
+            function showJoinRoomPrompt() {
+                const joinerName = prompt("First, what is your name?");
+                if (!joinerName || !joinerName.trim()) return;
+                const roomId = prompt("Enter the 6-character Room Code to join:");
+                if (roomId && roomId.trim()) joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
+            };
+
+            function leaveRoom() {
+                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
+                sessionStorage.removeItem('currentUserName');
+                AppState.mode = 'solo'; AppState.roomId = null;
+                appContainer.style.display = 'none'; welcomeScreen.style.display = 'block';
+                resetLocalState();
+            };
+            
+            function copyRoomCode() {
+                const code = roomCodeDisplay.textContent;
+                const textArea = document.createElement("textarea");
+                textArea.value = code; document.body.appendChild(textArea); textArea.select();
+                try { document.execCommand('copy'); showAlert(`Room Code "${code}" copied!`); } 
+                catch (err) { showAlert('Failed to copy code.'); }
+                document.body.removeChild(textArea);
+            }
+
+            function resetLocalState() {
+                AppState = { ...AppState, friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', extractedBillItems: [] };
+                renderAll();
+            }
+
+            // --- FIRESTORE INTERACTION ---
+            async function createRoom(roomName, creatorName, allowEdits) {
+                if (!window.firebase) { showAlert('Database connection not available.'); return; }
+                const { db, doc, setDoc, serverTimestamp } = window.firebase;
+                const roomId = generateRoomId();
+                const roomRef = doc(db, "rooms", roomId);
+                loadingModalText.textContent = 'Creating room...'; showModal('loadingModal');
+                try {
+                    await setDoc(roomRef, { roomName, createdAt: serverTimestamp(), friends: [creatorName], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', permissions: { canEdit: allowEdits } });
+                    sessionStorage.setItem('currentUserName', creatorName);
+                    startListeningToRoom(roomId);
+                } catch(error) { console.error("Error creating room: ", error); showAlert("Could not create room."); closeModal('loadingModal'); }
+            }
+            
+            async function joinRoom(roomId, joinerName) {
+                if (!window.firebase) { showAlert('Database connection not available.'); return; }
+                const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase;
+                const roomRef = doc(db, "rooms", roomId);
+                loadingModalText.textContent = 'Joining room...'; showModal('loadingModal');
+                try {
+                    const docSnap = await getDoc(roomRef);
+                    if (!docSnap.exists()) throw new Error("Room not found.");
+                    await updateDoc(roomRef, { friends: arrayUnion(joinerName) });
+                    sessionStorage.setItem('currentUserName', joinerName);
+                    startListeningToRoom(roomId);
+                } catch(error) { console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal'); }
+            }
+            
+            function startListeningToRoom(roomId) {
+                const { db, doc, onSnapshot } = window.firebase;
+                const roomRef = doc(db, "rooms", roomId);
+                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
+                AppState.mode = 'room'; AppState.roomId = roomId;
+                AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
+                    console.log("Received room update");
+                    const data = doc.data();
+                    if (data) {
+                        AppState = { ...AppState, ...data };
+                        renderAll();
+                        roomNameDisplay.textContent = data.roomName;
+                        currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
                     }
                 });
+                closeModal('loadingModal');
+                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block';
+                roomInfoBar.style.display = 'block'; roomCodeDisplay.textContent = roomId;
+                appSubtitle.textContent = `You are in a collaborative room.`;
             }
-            individualSplitsDisplay.innerHTML = AppState.friends.map(friend => {
-                const owesAmount = individualOwes[friend] || 0;
-                const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                return `<p class="p-3 bg-white border border-slate-200 rounded-md shadow-sm"><span class="font-semibold">${safeFriendName}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
-            }).join('');
-            originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
-            discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
-            discountAppliedText.textContent = `Discount Applied: -₹${totalDiscountAmount.toFixed(2)}`;
-            finalItemizedCostText.textContent = `Final Itemized Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
-            const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
-            unaccountedMoneyText.textContent = unaccountedMoney >= 0 ? `Unaccounted (Surplus/Tip?): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
-            unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney >=0 ? 'text-green-600' : 'text-red-600'}`;
-            resultsSection.style.display = 'block';
-            resultsSection.scrollIntoView({ behavior: 'smooth' });
-        }
 
-        async function generateAndShowImage() {
-            if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
-            const resultsToCapture = document.getElementById('resultsToCapture');
-            const originalBg = resultsToCapture.style.backgroundColor;
-            const originalPadding = resultsToCapture.style.padding;
-            resultsToCapture.style.backgroundColor = 'white';
-            resultsToCapture.style.padding = '20px';
-            try {
-                const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false });
-                resultsToCapture.style.backgroundColor = originalBg;
-                resultsToCapture.style.padding = originalPadding;
-                const imageDataUrl = canvas.toDataURL('image/png');
-                document.getElementById('generatedImagePreview').src = imageDataUrl;
-                document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); };
-                showModal('imagePreviewModal');
-            } catch (error) {
-                console.error("Image gen error:", error); showAlert("Error generating image.");
-                resultsToCapture.style.backgroundColor = originalBg;
-                resultsToCapture.style.padding = originalPadding;
+            async function updateFirestore(newData) {
+                if (AppState.mode !== 'room' || !AppState.roomId) return;
+                const { db, doc, updateDoc } = window.firebase;
+                const roomRef = doc(db, "rooms", AppState.roomId);
+                try { await updateDoc(roomRef, newData); } 
+                catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); }
             }
-        }
-        
-        // --- EVENT LISTENERS ---
-        billImageInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    billImagePreview.src = e.target.result;
-                    billImagePreview.style.display = 'block';
-                    processBillBtn.disabled = false;
-                }
-                reader.readAsDataURL(file);
-            } else {
-                billImagePreview.style.display = 'none';
+
+            function generateRoomId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
+
+            // --- CORE LOGIC FUNCTIONS ---
+            function addFriend() {
+                const friendName = friendNameInput.value.trim();
+                if (!friendName) { showAlert("Please enter a friend's name."); return; }
+                if (AppState.friends.includes(friendName)) { showAlert(`"${friendName}" is already in the group.`); return; }
+                if (AppState.mode === 'room') { updateFirestore({ friends: window.firebase.arrayUnion(friendName) }); } 
+                else { AppState.friends.push(friendName); renderAll(); }
+                friendNameInput.value = "";
+            };
+
+            function removeFriend(index) {
+                const friendToRemove = AppState.friends[index];
+                const newFriends = AppState.friends.filter((_, i) => i !== index);
+                const newItems = AppState.items.map(item => ({...item, sharers: item.sharers.filter(s => s !== friendToRemove) }));
+                if (AppState.mode === 'room') updateFirestore({ friends: newFriends, items: newItems });
+                else { AppState.friends = newFriends; AppState.items = newItems; renderAll(); }
+            };
+            
+            function addItemManually() {
+                const itemName = document.getElementById('itemNameInput').value.trim();
+                const itemCost = parseFloat(document.getElementById('itemCostInput').value);
+                if (!itemName || isNaN(itemCost) || itemCost < 0) { showAlert("Please enter valid item name and cost."); return; }
+                const newItem = { name: itemName, cost: itemCost, sharers: [] };
+                if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
+                else { AppState.items.push(newItem); renderItemsList(); }
+                document.getElementById('itemNameInput').value = ""; document.getElementById('itemCostInput').value = "";
+            };
+            
+            function removeItemFromSplit(index) {
+                 const newItems = AppState.items.filter((_, i) => i !== index);
+                 if (AppState.mode === 'room') updateFirestore({ items: newItems });
+                 else { AppState.items = newItems; renderItemsList(); }
+            };
+
+            function toggleMyShare(itemIndex) {
+                const currentUserName = sessionStorage.getItem('currentUserName');
+                if (!currentUserName || AppState.mode !== 'room') return;
+                const newItems = JSON.parse(JSON.stringify(AppState.items));
+                const sharers = newItems[itemIndex].sharers;
+                const isUserSharing = sharers.includes(currentUserName);
+                if (isUserSharing) {
+                    const userIndex = sharers.indexOf(currentUserName);
+                    if (userIndex > -1) sharers.splice(userIndex, 1);
+                } else { sharers.push(currentUserName); }
+                updateFirestore({ items: newItems });
+            }
+            
+            function updateBillDetails() {
+                const newTotalBill = parseFloat(totalBillInput.value) || 0;
+                const newDiscountValue = parseFloat(discountValueInput.value) || 0;
+                const newDiscountType = discountTypeSelect.value;
+                const updatePayload = { totalBill: newTotalBill, discountValue: newDiscountValue, discountType: newDiscountType };
+                if (AppState.mode === 'room') {
+                     if (window.billUpdateTimeout) clearTimeout(window.billUpdateTimeout);
+                     window.billUpdateTimeout = setTimeout(() => updateFirestore(updatePayload), 500);
+                } else { AppState = {...AppState, ...updatePayload }; }
+            };
+
+            async function processBillImageWithOpenAI() {
+                const openAiApiKey = openAiApiKeyInput.value.trim();
+                if (!openAiApiKey) { showAlert("Please enter your OpenAI API Key."); return; }
+                if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; }
+                loadingModalText.textContent = "Processing Bill..."; showModal('loadingModal');
                 processBillBtn.disabled = true;
+                const reader = new FileReader();
+                reader.onloadend = async function() {
+                    const base64ImageDataWithPrefix = reader.result;
+                    const apiUrl = "https://api.openai.com/v1/chat/completions";
+                    const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (GST, VAT, etc.) and their costs. Format each as: ITEM_NAME - COST. Example: Masala Dosa - 150.00. If unidentifiable, respond with "NO_ITEMS_EXTRACTED".`;
+                    const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix }}] }], max_tokens: 1000 };
+                    try {
+                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) });
+                        if (!response.ok) { const d = await response.json(); throw new Error(d.error.message); }
+                        const result = await response.json();
+                        const extractedText = result.choices[0].message.content.trim();
+                        document.getElementById('ocrRawOutput').textContent = "Raw Output:\n" + extractedText;
+                        document.getElementById('ocrRawOutput').style.display = 'block';
+                        parseAndDisplayExtractedItems(extractedText);
+                    } catch (error) { showAlert(`OpenAI Error: ${error.message}`); } 
+                    finally { closeModal('loadingModal'); processBillBtn.disabled = false; document.getElementById('reviewExtractedItemsSection').style.display = 'block'; }
+                };
+                reader.readAsDataURL(billImageInput.files[0]);
             }
-        });
-        
-        // --- GLOBAL FUNCTION EXPOSURE ---
-        window.startSoloSession = startSoloSession; window.showCreateRoomPrompt = showCreateRoomPrompt;
-        window.showJoinRoomPrompt = showJoinRoomPrompt; window.leaveRoom = leaveRoom;
-        window.copyRoomCode = copyRoomCode; window.addFriend = addFriend; window.removeFriend = removeFriend;
-        window.addItemManually = addItemManually; window.removeItemFromSplit = removeItemFromSplit;
-        window.toggleMyShare = toggleMyShare; window.updateBillDetails = updateBillDetails;
-        window.processBillImageWithOpenAI = processBillImageWithOpenAI;
-        window.addExtractedItemToSplit = addExtractedItemToSplit;
-        window.calculateSplit = calculateSplit; window.generateAndShowImage = generateAndShowImage;
+            
+            function parseAndDisplayExtractedItems(text) {
+                AppState.extractedBillItems = [];
+                const lines = text.split('\n');
+                const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/;
+                lines.forEach(line => {
+                    const match = line.trim().match(itemRegex);
+                    if (match) {
+                        const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim();
+                        const cost = parseFloat(match[2]);
+                        if (name && !isNaN(cost) && cost >= 0) AppState.extractedBillItems.push({ name, cost, sharers: [] });
+                    }
+                });
+                renderExtractedItemsForReview();
+            }
+            
+            function renderExtractedItemsForReview() {
+                 extractedItemsReviewContainer.innerHTML = "";
+                if (!AppState.extractedBillItems || AppState.extractedBillItems.length === 0) {
+                    document.getElementById('noExtractedItemsMsg').style.display = 'block'; return;
+                }
+                document.getElementById('noExtractedItemsMsg').style.display = 'none';
+                AppState.extractedBillItems.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'p-4 bg-white border border-indigo-200 rounded-lg shadow-sm';
+                    const sanitizedItemName = item.name.replace(/"/g, "&quot;");
+                    itemDiv.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                        <div><label for="ocr-item-${index}-name" class="text-xs font-medium text-slate-600">Item/Tax Name:</label><input type="text" id="ocr-item-${index}-name" value="${sanitizedItemName}" class="w-full p-2 border border-slate-300 rounded-md text-sm"></div>
+                        <div><label for="ocr-item-${index}-cost" class="text-xs font-medium text-slate-600">Cost (₹):</label><input type="number" id="ocr-item-${index}-cost" value="${item.cost.toFixed(2)}" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm"></div>
+                        </div>
+                        <div class="mt-4"><button onclick="addExtractedItemToSplit(${index})" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-md text-sm whitespace-nowrap">Add to Split List</button></div>`;
+                    extractedItemsReviewContainer.appendChild(itemDiv);
+                });
+            }
 
+            function addExtractedItemToSplit(index) {
+                const name = document.getElementById(`ocr-item-${index}-name`).value.trim();
+                const cost = parseFloat(document.getElementById(`ocr-item-${index}-cost`).value);
+                if (!name || isNaN(cost) || cost < 0) { showAlert("Invalid name or cost."); return; }
+                const newItem = { name: name, cost: cost, sharers: [] };
+                AppState.extractedBillItems.splice(index, 1);
+                if (AppState.mode === 'room') { updateFirestore({ items: window.firebase.arrayUnion(newItem) }); } 
+                else { AppState.items.push(newItem); }
+                renderAll();
+            }
+
+            function calculateSplit() {
+                if (AppState.friends.length === 0) { showAlert("Add friends first."); return; }
+                if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
+                if (!AppState.totalBill && AppState.totalBill !== 0) { showAlert("Enter total bill amount (₹)."); return; }
+                let individualOwes = {};
+                AppState.friends.forEach(friend => individualOwes[friend] = 0);
+                let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
+                AppState.items.forEach(item => {
+                    if (item.sharers.length > 0) {
+                        const costPerSharer = item.cost / item.sharers.length;
+                        item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; });
+                    }
+                });
+                let totalDiscountAmount = 0;
+                if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) {
+                    totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue;
+                    if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost;
+                }
+                let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
+                if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
+                     AppState.friends.forEach(friend => {
+                        const originalShare = individualOwes[friend];
+                        if (originalShare > 0) {
+                            const proportionOfTotal = originalShare / originalTotalItemizedCost;
+                            const discountForFriend = totalDiscountAmount * proportionOfTotal;
+                            individualOwes[friend] = Math.max(0, originalShare - discountForFriend);
+                        }
+                    });
+                }
+                individualSplitsDisplay.innerHTML = AppState.friends.map(friend => {
+                    const owesAmount = individualOwes[friend] || 0;
+                    const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    return `<p class="p-3 bg-white border border-slate-200 rounded-md shadow-sm"><span class="font-semibold">${safeFriendName}</span> owes: <span class="font-bold text-emerald-600">₹${owesAmount.toFixed(2)}</span></p>`;
+                }).join('');
+                originalItemizedCostText.textContent = `Original Itemized Cost: ₹${originalTotalItemizedCost.toFixed(2)}`;
+                discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
+                discountAppliedText.textContent = `Discount Applied: -₹${totalDiscountAmount.toFixed(2)}`;
+                finalItemizedCostText.textContent = `Final Itemized Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
+                const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
+                unaccountedMoneyText.textContent = unaccountedMoney >= 0 ? `Unaccounted (Surplus/Tip?): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
+                unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney >=0 ? 'text-green-600' : 'text-red-600'}`;
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            async function generateAndShowImage() {
+                if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
+                const resultsToCapture = document.getElementById('resultsToCapture');
+                const originalBg = resultsToCapture.style.backgroundColor;
+                const originalPadding = resultsToCapture.style.padding;
+                resultsToCapture.style.backgroundColor = 'white';
+                resultsToCapture.style.padding = '20px';
+                try {
+                    const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false });
+                    resultsToCapture.style.backgroundColor = originalBg;
+                    resultsToCapture.style.padding = originalPadding;
+                    const imageDataUrl = canvas.toDataURL('image/png');
+                    document.getElementById('generatedImagePreview').src = imageDataUrl;
+                    document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); };
+                    showModal('imagePreviewModal');
+                } catch (error) {
+                    console.error("Image gen error:", error); showAlert("Error generating image.");
+                    resultsToCapture.style.backgroundColor = originalBg;
+                    resultsToCapture.style.padding = originalPadding;
+                }
+            }
+            
+            // --- EVENT LISTENERS ---
+            billImageInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        billImagePreview.src = e.target.result;
+                        billImagePreview.style.display = 'block';
+                        processBillBtn.disabled = false;
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    billImagePreview.style.display = 'none';
+                    processBillBtn.disabled = true;
+                }
+            });
+
+            // Make functions globally available for inline onclick attributes
+            // This is a necessary pattern for this app's structure
+            Object.assign(window, {
+                startSoloSession, showCreateRoomPrompt, showJoinRoomPrompt, leaveRoom, copyRoomCode, addFriend,
+                removeFriend, addItemManually, removeItemFromSplit, toggleMyShare, updateBillDetails,
+                processBillImageWithOpenAI, addExtractedItemToSplit, calculateSplit, generateAndShowImage
+            });
+
+        });
     </script>
 </body>
 </html>
