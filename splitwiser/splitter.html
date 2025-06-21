@@ -15,7 +15,7 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // TODO: Replace with your actual Firebase config object
-    const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -65,9 +65,9 @@
             <h1 class="text-4xl font-bold text-sky-600">Welcome!</h1>
             <p class="text-slate-500 mt-2 mb-8">How would you like to split the bill?</p>
             <div class="space-y-4">
-                <button onclick="startSoloSession()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚀 Split Bill Solo</button>
-                <button onclick="showCreateRoomPrompt()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🤝 Create a New Room</button>
-                <button onclick="showJoinRoomPrompt()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚪 Join a Room</button>
+                <button id="startSoloBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚀 Split Bill Solo</button>
+                <button id="createRoomBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🤝 Create a New Room</button>
+                <button id="joinRoomBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚪 Join a Room</button>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
             <!-- Section 1: Friends Management -->
             <section id="friendsSection" class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
                 <h2 class="text-2xl font-semibold text-sky-700 mb-4">👥 Group Members</h2>
-                <div id="manualAddFriendSection" class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"><button onclick="addFriend()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Friend</button></div>
+                <div id="manualAddFriendSection" class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"><button id="addFriendBtn" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Friend</button></div>
                 <div id="friendsListDisplay" class="text-slate-600"><p class="font-medium">Current Group:</p><div id="friendsTags" class="flex flex-wrap gap-2 mt-1"></div></div>
             </section>
 
@@ -476,7 +476,7 @@
             }
             
             function renderExtractedItemsForReview() {
-                 extractedItemsReviewContainer.innerHTML = "";
+                 document.getElementById('extractedItemsReviewContainer').innerHTML = "";
                 if (!AppState.extractedBillItems || AppState.extractedBillItems.length === 0) {
                     document.getElementById('noExtractedItemsMsg').style.display = 'block'; return;
                 }
@@ -588,13 +588,19 @@
                     processBillBtn.disabled = true;
                 }
             });
+            document.getElementById('startSoloBtn').addEventListener('click', startSoloSession);
+            document.getElementById('createRoomBtn').addEventListener('click', showCreateRoomPrompt);
+            document.getElementById('joinRoomBtn').addEventListener('click', showJoinRoomPrompt);
+            document.getElementById('addFriendBtn').addEventListener('click', addFriend);
+            document.getElementById('addItemManuallyBtn').addEventListener('click', addItemManually);
+            document.getElementById('processBillBtn').addEventListener('click', processBillImageWithOpenAI);
+            document.getElementById('calculateSplitBtn').addEventListener('click', calculateSplit);
+            document.getElementById('generateImageBtn').addEventListener('click', generateAndShowImage);
 
-            // Make functions globally available for inline onclick attributes
-            // This is a necessary pattern for this app's structure
+
+            // Make functions called by DYNAMICALLY created HTML global
             Object.assign(window, {
-                startSoloSession, showCreateRoomPrompt, showJoinRoomPrompt, leaveRoom, copyRoomCode, addFriend,
-                removeFriend, addItemManually, removeItemFromSplit, toggleMyShare, updateBillDetails,
-                processBillImageWithOpenAI, addExtractedItemToSplit, calculateSplit, generateAndShowImage
+                leaveRoom, copyRoomCode, removeFriend, removeItemFromSplit, toggleMyShare, addExtractedItemToSplit,
             });
 
         });
