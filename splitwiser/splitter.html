@@ -15,7 +15,7 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // TODO: Replace with your actual Firebase config object
-        const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -65,9 +65,9 @@
             <h1 class="text-4xl font-bold text-sky-600">Welcome!</h1>
             <p class="text-slate-500 mt-2 mb-8">How would you like to split the bill?</p>
             <div class="space-y-4">
-                <button id="startSoloBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚀 Split Bill Solo</button>
-                <button id="createRoomBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🤝 Create a New Room</button>
-                <button id="joinRoomBtn" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚪 Join a Room</button>
+                <button onclick="startSoloSession()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚀 Split Bill Solo</button>
+                <button onclick="showCreateRoomPrompt()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🤝 Create a New Room</button>
+                <button onclick="showJoinRoomPrompt()" class="w-full welcome-button font-bold py-4 px-6 rounded-lg text-lg transition duration-150 shadow-lg hover:shadow-xl transform hover:scale-105">🚪 Join a Room</button>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
             <!-- Section 1: Friends Management -->
             <section id="friendsSection" class="mb-8 p-6 bg-slate-50 rounded-lg shadow">
                 <h2 class="text-2xl font-semibold text-sky-700 mb-4">👥 Group Members</h2>
-                <div id="manualAddFriendSection" class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"><button id="addFriendBtn" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Friend</button></div>
+                <div id="manualAddFriendSection" class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="friendNameInput" placeholder="Enter friend's name" class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"><button onclick="addFriend()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Friend</button></div>
                 <div id="friendsListDisplay" class="text-slate-600"><p class="font-medium">Current Group:</p><div id="friendsTags" class="flex flex-wrap gap-2 mt-1"></div></div>
             </section>
 
@@ -120,7 +120,7 @@
                     <label for="billImageInput" class="block text-sm font-medium text-slate-700 mb-1">Select Bill Image:</label>
                     <input type="file" id="billImageInput" accept="image/png, image/jpeg, image/webp" class="w-full p-2 border border-slate-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200">
                     <img id="billImagePreview" src="#" alt="Bill preview" class="mt-3 rounded-lg max-h-60 w-auto shadow-sm" style="display:none;">
-                    <button id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50" disabled>Process Image with OpenAI</button>
+                    <button onclick="processBillImageWithOpenAI()" id="processBillBtn" class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50" disabled>Process Image with OpenAI</button>
                     <p class="text-xs text-slate-500 mt-2">Always review extracted items (including taxes).</p>
                 </div>
             </section>
@@ -139,13 +139,13 @@
                     <div><label for="itemNameInput" class="block text-sm font-medium text-slate-700 mb-1">Item Name:</label><input type="text" id="itemNameInput" placeholder="e.g., Pizza" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                     <div><label for="itemCostInput" class="block text-sm font-medium text-slate-700 mb-1">Item Cost (₹):</label><input type="number" id="itemCostInput" placeholder="0.00" step="0.01" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"></div>
                 </div>
-                <button id="addItemManuallyBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item</button>
+                <button onclick="addItemManually()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition">Add Item</button>
             </section>
             
             <!-- Final App Sections (unchanged) -->
             <section class="mb-8 p-6 bg-slate-50 rounded-lg shadow"><h2 class="text-2xl font-semibold text-sky-700 mb-4">📋 Items Added for Splitting</h2><div id="itemsListContainer" class="max-h-96 overflow-y-auto custom-scrollbar space-y-3"><p id="noItemsMsg" class="text-slate-500">No items added yet.</p></div></section>
-            <section class="mb-8 text-center"><button id="calculateSplitBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
-            <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText"></p><p id="discountAppliedText"></p><p id="finalItemizedCostText"></p><p id="unaccountedMoneyText"></p></div></div><div class="mt-8 text-center"><button id="generateImageBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">🖼️ Share Results Image</button></div></section>
+            <section class="mb-8 text-center"><button onclick="calculateSplit()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition shadow-lg hover:shadow-xl transform hover:scale-105">📊 Calculate Split!</button></section>
+            <section id="resultsSection" class="p-6 bg-sky-50 rounded-lg shadow-inner" style="display: none;"><div id="resultsToCapture"><h2 class="text-2xl font-semibold text-sky-700 mb-6 text-center">📈 Results Breakdown</h2><div id="individualSplitsDisplay" class="space-y-3 mb-6"></div><div id="summaryDisplay" class="text-center p-4 bg-sky-100 rounded-lg"><p id="originalItemizedCostText"></p><p id="discountAppliedText"></p><p id="finalItemizedCostText"></p><p id="unaccountedMoneyText"></p></div></div><div class="mt-8 text-center"><button onclick="generateAndShowImage()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">🖼️ Share Results Image</button></div></section>
         </div>
     </div>
     
@@ -162,7 +162,7 @@
                 if (welcomeContainer) {
                     welcomeContainer.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-2xl text-red-600"><h1 class="text-3xl font-bold">Connection Error</h1><p class="mt-4">Could not connect to the database service.</p><p class="mt-2">Please ensure you have correctly added your Firebase configuration object in the script.</p></div>`;
                 }
-                return; // Stop execution if firebase is not available
+                return; 
             }
 
             // --- GLOBAL APP STATE ---
