@@ -43,7 +43,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-   const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -315,7 +315,6 @@
             window.closeModal = closeModal;
             window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
 
-            // CORRECTED MODAL FUNCTION
             function showInputModal(options) {
                 return new Promise((resolve, reject) => {
                     const modal = document.getElementById('inputModal');
@@ -420,7 +419,6 @@
                 resetLocalState(); applyPermissions(); showTab('manual');
             };
             
-            // CORRECTED PROMPT FLOW
             async function showCreateRoomPrompt() {
                 try {
                     const creatorName = await showInputModal({ type: 'prompt', title: "Create a Room", message: "First, what's your name?", placeholder: "Enter your name", okText: "Next" });
@@ -498,6 +496,8 @@
                     showTab('manual');
                 } catch(error) { console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal'); }
             }
+            
+            // CORRECTED FUNCTION
             function startListeningToRoom(roomId) {
                 const { db, doc, onSnapshot } = window.firebase;
                 const roomRef = doc(db, "rooms", roomId);
@@ -511,9 +511,13 @@
                         currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
                     } else { showAlert("The host may have closed the room."); leaveRoom(); }
                 }, (error) => { console.error("Snapshot listener error:", error); showAlert("Lost connection to the room."); leaveRoom(); });
+                
+                roomCodeDisplay.textContent = roomId; // THIS LINE WAS MISSING
+                
                 closeModal('loadingModal');
                 welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'flex';
             }
+
             async function updateFirestore(newData) { if (AppState.mode !== 'room' || !AppState.roomId) return; const { db, doc, updateDoc } = window.firebase; const roomRef = doc(db, "rooms", AppState.roomId); try { await updateDoc(roomRef, newData); } catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); } }
             
             // --- CORE LOGIC FUNCTIONS ---
