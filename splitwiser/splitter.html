@@ -43,7 +43,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        const firebaseConfig = {
+   const firebaseConfig = {
   apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
   authDomain: "test-splitwiser.firebaseapp.com",
   projectId: "test-splitwiser",
@@ -86,7 +86,7 @@
             cursor: pointer;
             border-bottom: 3px solid transparent;
             transition: border-color 0.3s, color 0.3s;
-            color: var(--text-medium);
+            color: #49454F; /* text-medium */
         }
         .tab-button.active {
             color: #63519F; 
@@ -315,6 +315,7 @@
             window.closeModal = closeModal;
             window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
 
+            // CORRECTED MODAL FUNCTION
             function showInputModal(options) {
                 return new Promise((resolve, reject) => {
                     const modal = document.getElementById('inputModal');
@@ -328,14 +329,15 @@
                     inputEl.style.display = 'none';
                     buttonsEl.innerHTML = '';
 
-                    const handleCancel = () => { closeModal('inputModal'); reject(new Error('User cancelled')); };
-                    
-                    const cancelBtn = document.createElement('button');
-                    cancelBtn.textContent = options.cancelText || 'Cancel';
-                    cancelBtn.className = 'text-primary-brand font-medium py-2 px-4 rounded-full hover:bg-secondary-brand';
-                    cancelBtn.onclick = handleCancel;
-
+                    // Logic for Prompts (which can be cancelled)
                     if (options.type === 'prompt') {
+                        const handleCancel = () => { closeModal('inputModal'); reject(new Error('User cancelled prompt')); };
+                        
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.textContent = 'Cancel';
+                        cancelBtn.className = 'text-primary-brand font-medium py-2 px-4 rounded-full hover:bg-secondary-brand';
+                        cancelBtn.onclick = handleCancel;
+
                         inputEl.style.display = 'block';
                         inputEl.value = '';
                         inputEl.placeholder = options.placeholder || '';
@@ -345,12 +347,20 @@
                         okBtn.onclick = () => { closeModal('inputModal'); resolve(inputEl.value); };
                         buttonsEl.append(cancelBtn, okBtn);
                         setTimeout(() => inputEl.focus(), 100);
+                    
+                    // Logic for Confirmations (which resolve to true or false)
                     } else if (options.type === 'confirm') {
                         const yesBtn = document.createElement('button');
                         yesBtn.textContent = options.yesText || 'Yes';
                         yesBtn.className = 'bg-primary-brand text-white font-medium py-2 px-6 rounded-full';
                         yesBtn.onclick = () => { closeModal('inputModal'); resolve(true); };
-                        buttonsEl.append(cancelBtn, yesBtn);
+
+                        const noBtn = document.createElement('button');
+                        noBtn.textContent = options.noText || 'No';
+                        noBtn.className = 'text-primary-brand font-medium py-2 px-4 rounded-full hover:bg-secondary-brand';
+                        noBtn.onclick = () => { closeModal('inputModal'); resolve(false); }; // Resolves to false
+                        
+                        buttonsEl.append(noBtn, yesBtn);
                     }
                     showModal('inputModal');
                 });
@@ -358,7 +368,6 @@
 
             // --- UI RENDERERS ---
             function renderAll() { renderFriends(); renderItemsList(); renderBillDetails(); applyPermissions(); }
-
             function renderFriends() {
                 const currentUserName = sessionStorage.getItem('currentUserName');
                 friendsTagsContainer.innerHTML = AppState.friends.length === 0 ? '<p class="text-text-medium text-sm px-2">No friends added yet. You are currently in a solo session.</p>' :
@@ -367,7 +376,6 @@
                         const isCurrentUser = friend === currentUserName;
                         const isHost = index === 0 && AppState.mode === 'room';
                         const canRemove = (currentUserName === AppState.friends[0] && AppState.mode === 'room') || AppState.mode === 'solo';
-                        
                         let friendPill = `<span class="bg-secondary-brand text-primary-brand text-sm font-medium pl-3 pr-2 py-1 rounded-full flex items-center gap-2">`;
                         if (isHost) friendPill += `<span class="material-symbols-outlined text-base">crown</span>`;
                         friendPill += `${safeFriendName}`;
@@ -379,52 +387,28 @@
                         return friendPill;
                     }).join('');
             }
-            
             function renderItemsList() {
                 noItemsMsg.style.display = AppState.items.length === 0 ? 'flex' : 'none';
                 itemsListContainer.style.display = AppState.items.length > 0 ? 'block' : 'none';
-
                 const currentUserName = sessionStorage.getItem('currentUserName');
                 const isHost = AppState.friends.length > 0 && currentUserName === AppState.friends[0];
                 const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
-
                 itemsListContainer.innerHTML = AppState.items.map((item, index) => {
                    const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                    const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
                    const isUserSharing = item.sharers.includes(currentUserName);
                    const removeButton = canEdit ? `<button onclick="removeItemFromSplit(${index})" class="text-text-light hover:text-error rounded-full p-1 transition-colors"><span class="material-symbols-outlined">delete</span></button>` : '';
                    const selfClaimCheckbox = (AppState.mode === 'room' && currentUserName) ? `<div class="mt-3 pt-3 border-t border-surface-light"><label class="flex items-center cursor-pointer text-primary-brand font-medium"><input type="checkbox" onchange="toggleMyShare(${index})" ${isUserSharing ? 'checked' : ''} class="w-5 h-5 text-primary-brand rounded focus:ring-primary-brand border-2 border-text-light mr-3"><span class="text-sm">I shared this item</span></label></div>` : '';
-                   
-                   return `<div class="bg-surface-light/70 p-4 rounded-xl">
-                                <div class="flex justify-between items-start gap-4">
-                                    <div class="flex-grow">
-                                        <p class="font-semibold text-text-dark text-base">${safeItemName}</p>
-                                        <p class="text-sm text-text-medium mt-1">Shared by: ${safeSharers || 'No one yet'}</p>
-                                    </div>
-                                    <div class="flex flex-col items-end gap-2">
-                                        <p class="text-lg font-bold text-primary-brand whitespace-nowrap">₹${item.cost.toFixed(2)}</p>
-                                        ${removeButton}
-                                    </div>
-                                </div>
-                                ${selfClaimCheckbox}
-                           </div>`;
+                   return `<div class="bg-surface-light/70 p-4 rounded-xl"><div class="flex justify-between items-start gap-4"><div><p class="font-semibold text-text-dark text-base">${safeItemName}</p><p class="text-sm text-text-medium mt-1">Shared by: ${safeSharers || 'No one yet'}</p></div><div class="flex flex-col items-end gap-2"><p class="text-lg font-bold text-primary-brand whitespace-nowrap">₹${item.cost.toFixed(2)}</p>${removeButton}</div></div>${selfClaimCheckbox}</div>`;
                 }).join('');
             }
-
-            function renderBillDetails() {
-                if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || '';
-                if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || '';
-                if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType;
-            }
-
+            function renderBillDetails() { if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || ''; if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || ''; if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType; }
             function applyPermissions() {
                 const currentUserName = sessionStorage.getItem('currentUserName');
                 const isHost = AppState.friends.length > 0 && currentUserName === AppState.friends[0];
                 const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
-                
                 const elementsToToggle = [ document.getElementById('manualAddFriendSection'), document.getElementById('billSection'), document.getElementById('itemInputSection') ];
                 elementsToToggle.forEach(el => canEdit ? el.classList.remove('permission-denied') : el.classList.add('permission-denied'));
-
                 permissionStatus.textContent = canEdit ? (isHost ? 'You are the Host' : 'Editing is enabled') : 'View-Only Mode';
             }
             
@@ -432,14 +416,11 @@
             function startSoloSession() {
                 AppState.mode = 'solo'; AppState.roomId = null; AppState.permissions.canEdit = true;
                 if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-                welcomeScreen.style.display = 'none';
-                appContainer.style.display = 'block';
-                roomInfoBar.style.display = 'none';
-                resetLocalState();
-                applyPermissions();
-                showTab('manual');
+                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'none';
+                resetLocalState(); applyPermissions(); showTab('manual');
             };
             
+            // CORRECTED PROMPT FLOW
             async function showCreateRoomPrompt() {
                 try {
                     const creatorName = await showInputModal({ type: 'prompt', title: "Create a Room", message: "First, what's your name?", placeholder: "Enter your name", okText: "Next" });
@@ -448,10 +429,18 @@
                     const roomName = await showInputModal({ type: 'prompt', title: "Name Your Room", message: `Great, ${creatorName}! What should the room be called?`, placeholder: "e.g., Goa Trip", okText: "Create" });
                     if (!roomName || !roomName.trim()) return;
 
-                    const allowEdits = await showInputModal({ type: 'confirm', title: "Set Permissions", message: "Allow others to add/remove items?", yesText: "Yes, Allow All", noText: "No, Host Only" });
+                    const allowEdits = await showInputModal({ 
+                        type: 'confirm', 
+                        title: "Set Permissions", 
+                        message: "Allow other participants to add/remove items?", 
+                        yesText: "Allow Editing", 
+                        noText: "Don't Allow Editing" 
+                    });
                     
                     createRoom(roomName.trim(), creatorName.trim(), allowEdits);
-                } catch (error) { console.log("Room creation cancelled."); }
+                } catch (error) { 
+                    console.log("Room creation cancelled by user."); 
+                }
             };
 
             async function showJoinRoomPrompt() {
@@ -473,9 +462,7 @@
                 }
                 if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
                 sessionStorage.removeItem('currentUserName');
-                appContainer.style.display = 'none';
-                welcomeScreen.style.display = 'block';
-                resetLocalState();
+                appContainer.style.display = 'none'; welcomeScreen.style.display = 'block'; resetLocalState();
             };
             
             function copyRoomCode() { const code = roomCodeDisplay.textContent; navigator.clipboard.writeText(code).then(() => showAlert(`Room Code "${code}" copied!`)).catch(() => showAlert('Failed to copy code.')); }
@@ -504,11 +491,7 @@
                     const docSnap = await getDoc(roomRef);
                     if (!docSnap.exists()) throw new Error("Room not found.");
                     const roomData = docSnap.data();
-                    if (roomData.friends && roomData.friends.includes(joinerName)) {
-                        showAlert(`A user named "${joinerName}" is already in this room. Please use a different name.`);
-                        closeModal('loadingModal');
-                        return;
-                    }
+                    if (roomData.friends && roomData.friends.includes(joinerName)) { showAlert(`A user named "${joinerName}" is already in this room. Please use a different name.`); closeModal('loadingModal'); return; }
                     await updateDoc(roomRef, { friends: arrayUnion(joinerName) });
                     sessionStorage.setItem('currentUserName', joinerName);
                     startListeningToRoom(roomId);
@@ -519,36 +502,19 @@
                 const { db, doc, onSnapshot } = window.firebase;
                 const roomRef = doc(db, "rooms", roomId);
                 if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-                AppState.mode = 'room';
-                AppState.roomId = roomId;
+                AppState.mode = 'room'; AppState.roomId = roomId;
                 AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
                     const data = doc.data();
                     if (data) {
-                        AppState = { ...AppState, ...data };
-                        renderAll();
+                        AppState = { ...AppState, ...data }; renderAll();
                         roomNameDisplay.textContent = data.roomName;
                         currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
-                    } else {
-                        showAlert("The host may have closed the room.");
-                        leaveRoom();
-                    }
-                }, (error) => {
-                    console.error("Snapshot listener error:", error);
-                    showAlert("Lost connection to the room.");
-                    leaveRoom();
-                });
+                    } else { showAlert("The host may have closed the room."); leaveRoom(); }
+                }, (error) => { console.error("Snapshot listener error:", error); showAlert("Lost connection to the room."); leaveRoom(); });
                 closeModal('loadingModal');
-                welcomeScreen.style.display = 'none';
-                appContainer.style.display = 'block';
-                roomInfoBar.style.display = 'flex';
+                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'flex';
             }
-            async function updateFirestore(newData) {
-                 if (AppState.mode !== 'room' || !AppState.roomId) return;
-                 const { db, doc, updateDoc } = window.firebase;
-                 const roomRef = doc(db, "rooms", AppState.roomId);
-                 try { await updateDoc(roomRef, newData); }
-                 catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); }
-            }
+            async function updateFirestore(newData) { if (AppState.mode !== 'room' || !AppState.roomId) return; const { db, doc, updateDoc } = window.firebase; const roomRef = doc(db, "rooms", AppState.roomId); try { await updateDoc(roomRef, newData); } catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); } }
             
             // --- CORE LOGIC FUNCTIONS ---
             function addFriend() { const name = friendNameInput.value.trim(); if (!name) return; if (AppState.friends.includes(name)) { showAlert(`"${name}" is already in the group.`); return; } if (AppState.mode === 'room') updateFirestore({ friends: window.firebase.arrayUnion(name) }); else { AppState.friends.push(name); renderAll(); } friendNameInput.value = ""; };
@@ -559,120 +525,14 @@
             function updateBillDetails() { const newTotalBill = parseFloat(totalBillInput.value) || 0; const newDiscountValue = parseFloat(discountValueInput.value) || 0; const newDiscountType = discountTypeSelect.value; const payload = { totalBill: newTotalBill, discountValue: newDiscountValue, discountType: newDiscountType }; if (AppState.mode === 'room') { if (window.billUpdateTimeout) clearTimeout(window.billUpdateTimeout); window.billUpdateTimeout = setTimeout(() => updateFirestore(payload), 800); } else { AppState = {...AppState, ...payload }; } };
             
             // --- OCR FUNCTIONS ---
-            async function processBillImageWithOpenAI() {
-                const openAiApiKey = openAiApiKeyInput.value.trim();
-                if (!openAiApiKey) { showAlert("Please enter your OpenAI API Key."); return; }
-                if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; }
-                
-                showModal('loadingModal');
-                processBillBtn.disabled = true;
-                
-                const reader = new FileReader();
-                reader.onloadend = async function() {
-                    const base64ImageDataWithPrefix = reader.result;
-                    const apiUrl = "https://api.openai.com/v1/chat/completions";
-                    const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (like GST, VAT, Service Charge, etc.) along with their corresponding costs. For each identified entry, return it in the format "ITEM_NAME - COST". List each item on a new line. Do not include any introductory text, summary, or explanations. If no items or costs are identifiable, respond ONLY with the text "NO_ITEMS_EXTRACTED".`;
-                    const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix, detail: "high" }}] }], max_tokens: 1000 };
-                    
-                    try {
-                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) });
-                        if (!response.ok) { 
-                            const d = await response.json(); 
-                            throw new Error(d.error.message || `HTTP Error ${response.status}`); 
-                        }
-                        const result = await response.json();
-                        const extractedText = result.choices[0].message.content.trim();
-                        parseAndAddExtractedItemsToMainList(extractedText);
-                    } catch (error) { 
-                        showAlert(`OpenAI Error: ${error.message}`); 
-                    } finally { 
-                        closeModal('loadingModal'); 
-                        updateProcessButtonState();
-                    }
-                };
-                reader.readAsDataURL(billImageInput.files[0]);
-            }
-            function parseAndAddExtractedItemsToMainList(text) {
-                if (text.includes("NO_ITEMS_EXTRACTED")) {
-                    showAlert("No identifiable items were extracted from the bill. Please try again or add manually.");
-                    return;
-                }
-                const lines = text.split('\n');
-                const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/;
-                let newItemsFromOCR = [];
-                lines.forEach(line => {
-                    const match = line.trim().match(itemRegex);
-                    if (match) {
-                        const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim();
-                        const cost = parseFloat(match[2]);
-                        if (name && !isNaN(cost) && cost >= 0) {
-                            newItemsFromOCR.push({ name, cost, sharers: [] });
-                        }
-                    }
-                });
-                if (newItemsFromOCR.length > 0) {
-                    const combinedItems = [...AppState.items, ...newItemsFromOCR];
-                    if (AppState.mode === 'room') {
-                        updateFirestore({ items: combinedItems });
-                    } else {
-                        AppState.items = combinedItems;
-                        renderItemsList(); 
-                    }
-                    showAlert(`Successfully added ${newItemsFromOCR.length} items from the bill!`);
-                } else {
-                    showAlert("Could not parse any items from the OCR result. Please check the bill image or add items manually.");
-                }
-            }
+            async function processBillImageWithOpenAI() { const openAiApiKey = openAiApiKeyInput.value.trim(); if (!openAiApiKey) { showAlert("Please enter your OpenAI API Key."); return; } if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; } showModal('loadingModal'); processBillBtn.disabled = true; const reader = new FileReader(); reader.onloadend = async function() { const base64ImageDataWithPrefix = reader.result; const apiUrl = "https://api.openai.com/v1/chat/completions"; const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (like GST, VAT, Service Charge, etc.) along with their corresponding costs. For each identified entry, return it in the format "ITEM_NAME - COST". List each item on a new line. Do not include any introductory text, summary, or explanations. If no items or costs are identifiable, respond ONLY with the text "NO_ITEMS_EXTRACTED".`; const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix, detail: "high" }}] }], max_tokens: 1000 }; try { const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) }); if (!response.ok) { const d = await response.json(); throw new Error(d.error.message || `HTTP Error ${response.status}`); } const result = await response.json(); const extractedText = result.choices[0].message.content.trim(); parseAndAddExtractedItemsToMainList(extractedText); } catch (error) { showAlert(`OpenAI Error: ${error.message}`); } finally { closeModal('loadingModal'); updateProcessButtonState(); } }; reader.readAsDataURL(billImageInput.files[0]); }
+            function parseAndAddExtractedItemsToMainList(text) { if (text.includes("NO_ITEMS_EXTRACTED")) { showAlert("No identifiable items were extracted from the bill. Please try again or add manually."); return; } const lines = text.split('\n'); const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/; let newItemsFromOCR = []; lines.forEach(line => { const match = line.trim().match(itemRegex); if (match) { const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim(); const cost = parseFloat(match[2]); if (name && !isNaN(cost) && cost >= 0) { newItemsFromOCR.push({ name, cost, sharers: [] }); } } }); if (newItemsFromOCR.length > 0) { const combinedItems = [...AppState.items, ...newItemsFromOCR]; if (AppState.mode === 'room') { updateFirestore({ items: combinedItems }); } else { AppState.items = combinedItems; renderItemsList(); } showAlert(`Successfully added ${newItemsFromOCR.length} items from the bill!`); } else { showAlert("Could not parse any items from the OCR result. Please check the bill image or add items manually."); } }
             
             // --- CALCULATE & SHARE ---
-            function calculateSplit() {
-                if (AppState.friends.length === 0) { showAlert("Please add friends to the group first."); return; }
-                if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
-                let individualOwes = {}; AppState.friends.forEach(f => individualOwes[f] = 0);
-                let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
-                AppState.items.forEach(item => { if (item.sharers.length > 0) { const costPerSharer = item.cost / item.sharers.length; item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; }); } });
-                let totalDiscountAmount = 0; if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) { totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue; if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; }
-                let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
-                if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) { AppState.friends.forEach(friend => { const originalShare = individualOwes[friend]; if (originalShare > 0) { const proportionOfTotal = originalShare / originalTotalItemizedCost; const discountForFriend = totalDiscountAmount * proportionOfTotal; individualOwes[friend] = Math.max(0, originalShare - discountForFriend); } }); }
-                
-                individualSplitsDisplay.innerHTML = AppState.friends.map(friend => `<div class="flex justify-between items-center p-3 bg-surface-background rounded-lg"><span class="font-medium">${friend.replace(/</g, "&lt;")}</span> <span class="font-bold text-green-600">owes ₹${(individualOwes[friend] || 0).toFixed(2)}</span></div>`).join('');
-                originalItemizedCostText.textContent = `Itemized Total: ₹${originalTotalItemizedCost.toFixed(2)}`;
-                discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
-                discountAppliedText.textContent = `Discount: -₹${totalDiscountAmount.toFixed(2)}`;
-                finalItemizedCostText.textContent = `Final Item Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
-                const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
-                unaccountedMoneyText.textContent = unaccountedMoney.toFixed(2) == 0.00 ? 'The bill is perfectly balanced!' : unaccountedMoney > 0 ? `Unaccounted (Tip/Surplus): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
-                unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney > 0 ? 'text-green-600' : unaccountedMoney < 0 ? 'text-error' : 'text-text-medium'}`;
-                resultsSection.style.display = 'block';
-                resultsSection.scrollIntoView({ behavior: 'smooth' });
-            }
-            async function generateAndShowImage() {
-                if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; }
-                const resultsToCapture = document.getElementById('resultsToCapture');
-                
-                const originalBg = resultsToCapture.style.backgroundColor;
-                resultsToCapture.style.backgroundColor = '#E8DEFC'; 
-                
-                try {
-                    const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false });
-                    resultsToCapture.style.backgroundColor = originalBg; 
-
-                    const imageDataUrl = canvas.toDataURL('image/png');
-                    document.getElementById('generatedImagePreview').src = imageDataUrl;
-                    document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); };
-                    showModal('imagePreviewModal');
-                } catch (error) {
-                    console.error("Image gen error:", error); showAlert("Error generating image.");
-                    resultsToCapture.style.backgroundColor = originalBg; 
-                }
-            }
+            function calculateSplit() { if (AppState.friends.length === 0) { showAlert("Please add friends to the group first."); return; } if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; } let individualOwes = {}; AppState.friends.forEach(f => individualOwes[f] = 0); let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0); AppState.items.forEach(item => { if (item.sharers.length > 0) { const costPerSharer = item.cost / item.sharers.length; item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; }); } }); let totalDiscountAmount = 0; if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) { totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue; if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; } let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount; if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) { AppState.friends.forEach(friend => { const originalShare = individualOwes[friend]; if (originalShare > 0) { const proportionOfTotal = originalShare / originalTotalItemizedCost; const discountForFriend = totalDiscountAmount * proportionOfTotal; individualOwes[friend] = Math.max(0, originalShare - discountForFriend); } }); } individualSplitsDisplay.innerHTML = AppState.friends.map(friend => `<div class="flex justify-between items-center p-3 bg-surface-background rounded-lg"><span class="font-medium">${friend.replace(/</g, "&lt;")}</span> <span class="font-bold text-green-600">owes ₹${(individualOwes[friend] || 0).toFixed(2)}</span></div>`).join(''); originalItemizedCostText.textContent = `Itemized Total: ₹${originalTotalItemizedCost.toFixed(2)}`; discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none'; discountAppliedText.textContent = `Discount: -₹${totalDiscountAmount.toFixed(2)}`; finalItemizedCostText.textContent = `Final Item Cost: ₹${finalTotalItemizedCost.toFixed(2)}`; const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost; unaccountedMoneyText.textContent = unaccountedMoney.toFixed(2) == 0.00 ? 'The bill is perfectly balanced!' : unaccountedMoney > 0 ? `Unaccounted (Tip/Surplus): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`; unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney > 0 ? 'text-green-600' : unaccountedMoney < 0 ? 'text-error' : 'text-text-medium'}`; resultsSection.style.display = 'block'; resultsSection.scrollIntoView({ behavior: 'smooth' }); }
+            async function generateAndShowImage() { if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; } const resultsToCapture = document.getElementById('resultsToCapture'); const originalBg = resultsToCapture.style.backgroundColor; resultsToCapture.style.backgroundColor = '#E8DEFC'; try { const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false }); resultsToCapture.style.backgroundColor = originalBg; const imageDataUrl = canvas.toDataURL('image/png'); document.getElementById('generatedImagePreview').src = imageDataUrl; document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); }; showModal('imagePreviewModal'); } catch (error) { console.error("Image gen error:", error); showAlert("Error generating image."); resultsToCapture.style.backgroundColor = originalBg; } }
             
-            function showTab(tabName) {
-                [manualTabBtn, ocrTabBtn].forEach(b => b.classList.remove('active'));
-                [manualItemContent, ocrContent].forEach(c => c.classList.add('hidden'));
-                if (tabName === 'manual') { manualTabBtn.classList.add('active'); manualItemContent.classList.remove('hidden'); } 
-                else { ocrTabBtn.classList.add('active'); ocrContent.classList.remove('hidden'); }
-            }
+            function showTab(tabName) { [manualTabBtn, ocrTabBtn].forEach(b => b.classList.remove('active')); [manualItemContent, ocrContent].forEach(c => c.classList.add('hidden')); if (tabName === 'manual') { manualTabBtn.classList.add('active'); manualItemContent.classList.remove('hidden'); } else { ocrTabBtn.classList.add('active'); ocrContent.classList.remove('hidden'); } }
             
             // --- EVENT LISTENERS ---
             function updateProcessButtonState() { const canEdit = AppState.permissions.canEdit || (AppState.mode === 'room' && AppState.friends.length > 0 && sessionStorage.getItem('currentUserName') === AppState.friends[0]) || AppState.mode === 'solo'; if (!canEdit) { processBillBtn.disabled = true; return; } processBillBtn.disabled = !openAiApiKeyInput.value.trim() || !billImageInput.files[0]; }
