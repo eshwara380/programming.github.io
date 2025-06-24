@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collaborative Expense Splitter - ₹</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,29 +27,26 @@
         }
     </script>
     
-    <!-- Fonts: Inter and Google Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
-    <!-- html2canvas for image generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5g+e9iwTgUBG/z5wsC+wL3QAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5g+e9iwTgUBG/z5wsC+wL3QAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
 const firebaseConfig = {
-  apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
-  authDomain: "test-splitwiser.firebaseapp.com",
-  projectId: "test-splitwiser",
-  storageBucket: "test-splitwiser.firebasestorage.app",
-  messagingSenderId: "65835544178",
-  appId: "1:65835544178:web:e4e9e7d7e0bc24f5381ceb",
-  measurementId: "G-29KLDPY75N"
+  apiKey: "AIzaSyB1j3hXvKPFf4ZQOlWgQZU0_bz6fFLbOm8",
+  authDomain: "test-splitwiser.firebaseapp.com",
+  projectId: "test-splitwiser",
+  storageBucket: "test-splitwiser.firebasestorage.app",
+  messagingSenderId: "65835544178",
+  appId: "1:65835544178:web:e4e9e7d7e0bc24f5381ceb",
+  measurementId: "G-29KLDPY75N"
 };
 
         try {
@@ -72,7 +68,6 @@ const firebaseConfig = {
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #63519F; animation: spin 1s ease infinite; margin: 1rem auto; } 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Custom scrollbar to match the theme */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #E8DEFC; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #63519F; border-radius: 10px; }
@@ -80,26 +75,41 @@ const firebaseConfig = {
         .material-symbols-outlined { vertical-align: bottom; font-size: 20px; }
         .permission-denied { opacity: 0.5; pointer-events: none; }
         
-        .tab-button {
-            padding: 12px 24px;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: border-color 0.3s, color 0.3s;
-            color: #49454F; /* text-medium */
+        .tab-button { padding: 12px 24px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: border-color 0.3s, color 0.3s; color: #49454F; }
+        .tab-button.active { color: #63519F; border-color: #63519F; }
+        .tab-button:hover:not(.active) { color: #1C1B1F; }
+
+        /* --- NEW & IMPROVED CSS FOR MICRO-INTERACTION --- */
+        .split-animation-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            margin: 20px auto;
         }
-        .tab-button.active {
-            color: #63519F; 
-            border-color: #63519F;
+        .coin-quadrant {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            background-color: #63519F; /* primary-brand */
+            border: 2px solid #4D3B80; /* primary-dark */
         }
-        .tab-button:hover:not(.active) {
-            color: #1C1B1F;
+        .modal.is-splitting .coin-quadrant {
+            animation: split-and-regroup 1.6s ease-in-out infinite;
+        }
+        .top-left { top: 0; left: 0; border-radius: 100% 0 0 0; --tx: -50%; --ty: -50%; --r: -30deg; }
+        .top-right { top: 0; right: 0; border-radius: 0 100% 0 0; --tx: 50%; --ty: -50%; --r: 30deg; }
+        .bottom-left { bottom: 0; left: 0; border-radius: 0 0 0 100%; --tx: -50%; --ty: 50%; --r: 30deg; }
+        .bottom-right { bottom: 0; right: 0; border-radius: 0 0 100% 0; --tx: 50%; --ty: 50%; --r: -30deg; }
+
+        @keyframes split-and-regroup {
+            0%, 100% { transform: translate(0, 0) rotate(0); opacity: 1; }
+            50% { transform: translate(var(--tx), var(--ty)) rotate(var(--r)); opacity: 1; }
+            75% { opacity: 0; }
         }
     </style>
 </head>
 <body class="p-4 md:p-6 lg:p-8">
 
-    <!-- Welcome/Entry Screen -->
     <div id="welcomeScreen" class="max-w-xl mx-auto text-center py-8">
         <div class="bg-surface-background p-6 rounded-2xl shadow-sm">
             <span class="material-symbols-outlined text-primary-brand" style="font-size: 48px;">payments</span>
@@ -119,15 +129,12 @@ const firebaseConfig = {
         </div>
     </div>
     
-    <!-- Main App Container (Initially Hidden) -->
     <div id="appContainer" class="hidden max-w-4xl mx-auto">
-        <!-- Room Info Bar -->
         <div id="roomInfoBar" class="hidden mb-6 bg-[#6750A4] text-white p-4 rounded-3xl shadow-lg text-center flex flex-col items-center">
             <div class="w-full flex justify-between items-center mb-3">
                  <button onclick="leaveRoom()" class="text-white opacity-80 hover:opacity-100 transition-opacity"><span class="material-symbols-outlined">arrow_back</span></button>
                  <h2 id="roomNameDisplay" class="text-xl font-bold"></h2>
-                 <div class="w-8"></div><!-- Spacer -->
-            </div>
+                 <div class="w-8"></div></div>
             <p id="currentUserDisplay" class="text-secondary-brand text-sm font-medium mb-3"></p>
             <p class="mt-2 text-sm font-light">Room Code:</p>
             <div class="mt-1 bg-black bg-opacity-20 inline-flex items-center p-2 rounded-full">
@@ -139,9 +146,7 @@ const firebaseConfig = {
              <p id="permissionStatus" class="text-xs mt-4 bg-black bg-opacity-20 inline-block px-3 py-1 rounded-full"></p>
         </div>
 
-        <!-- Main Content Area -->
         <div class="space-y-6">
-            <!-- Friends Section -->
             <section id="friendsSection" class="bg-surface-background p-5 rounded-2xl shadow-sm">
                 <h2 class="text-xl font-semibold text-text-dark mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-brand">group</span>Group Members</h2>
                 <div id="manualAddFriendSection" class="flex flex-col sm:flex-row gap-3 mb-4">
@@ -155,14 +160,12 @@ const firebaseConfig = {
                 </div>
             </section>
             
-            <!-- Item Input & Bill Details Tabs -->
             <section id="itemInputSection" class="bg-surface-background p-5 rounded-2xl shadow-sm">
                 <div class="flex border-b border-gray-200 mb-6">
                     <button id="manualTabBtn" class="tab-button active flex-1 flex items-center justify-center gap-2"><span class="material-symbols-outlined">edit_square</span>Add Manually</button>
                     <button id="ocrTabBtn" class="tab-button flex-1 flex items-center justify-center gap-2"><span class="material-symbols-outlined">document_scanner</span>Upload Bill</button>
                 </div>
 
-                <!-- Manual Add Content -->
                 <div id="manualItemContent">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <input type="text" id="itemNameInput" placeholder="Item Name (e.g., Pizza)" class="bg-surface-light border-none rounded-xl p-3 focus:ring-2 focus:ring-primary-brand">
@@ -173,7 +176,6 @@ const firebaseConfig = {
                     </button>
                 </div>
                 
-                <!-- OCR Upload Content -->
                 <div id="ocrContent" class="hidden space-y-4">
                     <input type="password" id="openAiApiKeyInput" placeholder="Enter your OpenAI API Key" class="w-full bg-surface-light border-none rounded-xl p-3 focus:ring-2 focus:ring-primary-brand">
                     <div>
@@ -186,7 +188,6 @@ const firebaseConfig = {
                 </div>
             </section>
             
-             <!-- Bill Details Section -->
             <section id="billSection" class="bg-surface-background p-5 rounded-2xl shadow-sm">
                  <h2 class="text-xl font-semibold text-text-dark mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-brand">receipt_long</span>Bill Details</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -201,7 +202,6 @@ const firebaseConfig = {
                 </div>
             </section>
             
-            <!-- Items List Section -->
             <section class="bg-surface-background p-5 rounded-2xl shadow-sm">
                 <h2 class="text-xl font-semibold text-text-dark mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-brand">list_alt</span>Items for Splitting</h2>
                 <div id="itemsListContainer" class="max-h-[50vh] overflow-y-auto custom-scrollbar space-y-3 p-1">
@@ -212,14 +212,12 @@ const firebaseConfig = {
                 </div>
             </section>
             
-            <!-- Calculate Button -->
             <section class="text-center">
                 <button id="calculateSplitBtn" class="bg-primary-brand text-white font-semibold py-4 px-10 rounded-full flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors shadow-xl hover:shadow-lg text-lg w-full md:w-auto md:mx-auto">
                     <span class="material-symbols-outlined">calculate</span>Calculate Split
                 </button>
             </section>
 
-            <!-- Results Section -->
             <section id="resultsSection" class="bg-secondary-brand p-5 rounded-2xl" style="display: none;">
                 <div id="resultsToCapture" class="bg-secondary-brand p-4">
                     <h2 class="text-2xl font-bold text-primary-brand mb-6 text-center flex items-center justify-center gap-2"><span class="material-symbols-outlined">bar_chart</span>Results</h2>
@@ -240,7 +238,6 @@ const firebaseConfig = {
         </div>
     </div>
     
-    <!-- Modals -->
     <div id="customAlertModal" class="modal">
         <div class="modal-content">
             <p id="modalMessageText" class="text-xl text-text-dark mb-6"></p>
@@ -258,8 +255,14 @@ const firebaseConfig = {
         </div>
     </div>
     <div id="loadingModal" class="modal">
-        <div class="modal-content bg-transparent shadow-none">
-            <div class="spinner"></div>
+        <div class="modal-content bg-transparent shadow-none text-center">
+            <div class="split-animation-container">
+                <div class="coin-quadrant top-left"></div>
+                <div class="coin-quadrant top-right"></div>
+                <div class="coin-quadrant bottom-left"></div>
+                <div class="coin-quadrant bottom-right"></div>
+            </div>
+            <p class="text-white font-semibold text-lg mt-2">Calculating...</p>
         </div>
     </div>
     <div id="inputModal" class="modal">
@@ -275,10 +278,8 @@ const firebaseConfig = {
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.firebase) { return; }
 
-            // --- GLOBAL APP STATE ---
             let AppState = { mode: 'solo', roomId: null, roomUnsubscribe: null, friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', permissions: { canEdit: true } };
             
-            // --- DOM Elements ---
             const welcomeScreen = document.getElementById('welcomeScreen');
             const appContainer = document.getElementById('appContainer');
             const roomInfoBar = document.getElementById('roomInfoBar');
@@ -308,7 +309,6 @@ const firebaseConfig = {
             const finalItemizedCostText = document.getElementById('finalItemizedCostText');
             const unaccountedMoneyText = document.getElementById('unaccountedMoneyText');
 
-            // --- MODAL & UTILITY FUNCTIONS ---
             function showModal(modalId) { document.getElementById(modalId).style.display = "flex"; }
             function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
             function showAlert(message) { document.getElementById('modalMessageText').textContent = message; showModal('customAlertModal'); }
@@ -322,21 +322,16 @@ const firebaseConfig = {
                     const messageEl = document.getElementById('inputModalMessage');
                     const inputEl = document.getElementById('inputModalField');
                     const buttonsEl = document.getElementById('inputModalButtons');
-
                     titleEl.textContent = options.title || '';
                     messageEl.innerHTML = options.message || '';
                     inputEl.style.display = 'none';
                     buttonsEl.innerHTML = '';
-
-                    // Logic for Prompts (which can be cancelled)
                     if (options.type === 'prompt') {
                         const handleCancel = () => { closeModal('inputModal'); reject(new Error('User cancelled prompt')); };
-                        
                         const cancelBtn = document.createElement('button');
                         cancelBtn.textContent = 'Cancel';
                         cancelBtn.className = 'text-primary-brand font-medium py-2 px-4 rounded-full hover:bg-secondary-brand';
                         cancelBtn.onclick = handleCancel;
-
                         inputEl.style.display = 'block';
                         inputEl.value = '';
                         inputEl.placeholder = options.placeholder || '';
@@ -346,19 +341,15 @@ const firebaseConfig = {
                         okBtn.onclick = () => { closeModal('inputModal'); resolve(inputEl.value); };
                         buttonsEl.append(cancelBtn, okBtn);
                         setTimeout(() => inputEl.focus(), 100);
-                    
-                    // Logic for Confirmations (which resolve to true or false)
                     } else if (options.type === 'confirm') {
                         const yesBtn = document.createElement('button');
                         yesBtn.textContent = options.yesText || 'Yes';
                         yesBtn.className = 'bg-primary-brand text-white font-medium py-2 px-6 rounded-full';
                         yesBtn.onclick = () => { closeModal('inputModal'); resolve(true); };
-
                         const noBtn = document.createElement('button');
                         noBtn.textContent = options.noText || 'No';
                         noBtn.className = 'text-primary-brand font-medium py-2 px-4 rounded-full hover:bg-secondary-brand';
-                        noBtn.onclick = () => { closeModal('inputModal'); resolve(false); }; // Resolves to false
-                        
+                        noBtn.onclick = () => { closeModal('inputModal'); resolve(false); };
                         buttonsEl.append(noBtn, yesBtn);
                     }
                     showModal('inputModal');
@@ -386,21 +377,69 @@ const firebaseConfig = {
                         return friendPill;
                     }).join('');
             }
+            
+            // --- MODIFIED renderItemsList with DYNAMIC UI ---
             function renderItemsList() {
                 noItemsMsg.style.display = AppState.items.length === 0 ? 'flex' : 'none';
                 itemsListContainer.style.display = AppState.items.length > 0 ? 'block' : 'none';
+                
                 const currentUserName = sessionStorage.getItem('currentUserName');
                 const isHost = AppState.friends.length > 0 && currentUserName === AppState.friends[0];
                 const canEdit = AppState.permissions.canEdit || isHost || AppState.mode === 'solo';
+
                 itemsListContainer.innerHTML = AppState.items.map((item, index) => {
-                   const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                   const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
-                   const isUserSharing = item.sharers.includes(currentUserName);
-                   const removeButton = canEdit ? `<button onclick="removeItemFromSplit(${index})" class="text-text-light hover:text-error rounded-full p-1 transition-colors"><span class="material-symbols-outlined">delete</span></button>` : '';
-                   const selfClaimCheckbox = (AppState.mode === 'room' && currentUserName) ? `<div class="mt-3 pt-3 border-t border-surface-light"><label class="flex items-center cursor-pointer text-primary-brand font-medium"><input type="checkbox" onchange="toggleMyShare(${index})" ${isUserSharing ? 'checked' : ''} class="w-5 h-5 text-primary-brand rounded focus:ring-primary-brand border-2 border-text-light mr-3"><span class="text-sm">I shared this item</span></label></div>` : '';
-                   return `<div class="bg-surface-light/70 p-4 rounded-xl"><div class="flex justify-between items-start gap-4"><div><p class="font-semibold text-text-dark text-base">${safeItemName}</p><p class="text-sm text-text-medium mt-1">Shared by: ${safeSharers || 'No one yet'}</p></div><div class="flex flex-col items-end gap-2"><p class="text-lg font-bold text-primary-brand whitespace-nowrap">₹${item.cost.toFixed(2)}</p>${removeButton}</div></div>${selfClaimCheckbox}</div>`;
+                    const safeItemName = item.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    let sharerUI_HTML = '';
+
+                    // --- LOGIC TO SWITCH UI BASED ON APP MODE ---
+                    if (AppState.mode === 'room') {
+                        // UI for Shared Rooms: "I shared this" checkbox
+                        const safeSharers = item.sharers.map(s => s.replace(/</g, "&lt;").replace(/>/g, "&gt;")).join(', ');
+                        const isUserSharing = item.sharers.includes(currentUserName);
+                        sharerUI_HTML = `
+                            <div class="mt-3 pt-3 border-t border-surface-light">
+                                <p class="text-sm text-text-medium mb-2">Shared by: ${safeSharers || 'No one yet'}</p>
+                                <label class="flex items-center cursor-pointer text-primary-brand font-medium">
+                                    <input type="checkbox" onchange="toggleMyShare(${index})" ${isUserSharing ? 'checked' : ''} class="w-5 h-5 text-primary-brand rounded focus:ring-primary-brand border-2 border-text-light mr-3">
+                                    <span class="text-sm">I shared this item</span>
+                                </label>
+                            </div>`;
+                    } else {
+                        // UI for Solo Mode: List of all friends with checkboxes
+                        sharerUI_HTML = AppState.friends.length > 0 ? `
+                            <div class="mt-4 pt-3 border-t border-secondary-dark/50">
+                                <p class="text-sm font-medium text-text-medium mb-2">Assign Sharers:</p>
+                                <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                    ${AppState.friends.map(friend => {
+                                        const safeFriendName = friend.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                        const isFriendSharing = item.sharers.includes(friend);
+                                        return `
+                                        <label class="flex items-center cursor-pointer font-medium">
+                                            <input type="checkbox" onchange="toggleSharer(${index}, '${friend.replace(/'/g, "\\'")}')" 
+                                                   ${isFriendSharing ? 'checked' : ''} 
+                                                   class="w-5 h-5 text-primary-brand rounded focus:ring-primary-brand border-2 border-text-light mr-2">
+                                            <span class="text-sm text-text-dark">${safeFriendName}</span>
+                                        </label>`;
+                                    }).join('')}
+                                </div>
+                            </div>` : '<div class="mt-3 pt-3 border-t border-surface-light text-sm text-text-light">Add friends to assign this item.</div>';
+                    }
+                    
+                    const removeButton = canEdit ? `<button onclick="removeItemFromSplit(${index})" class="text-text-light hover:text-error rounded-full p-1 transition-colors"><span class="material-symbols-outlined">delete</span></button>` : '';
+                    
+                    return `<div class="bg-surface-light/70 p-4 rounded-xl">
+                                <div class="flex justify-between items-start gap-4">
+                                    <div><p class="font-semibold text-text-dark text-base">${safeItemName}</p></div>
+                                    <div class="flex flex-col items-end gap-2">
+                                        <p class="text-lg font-bold text-primary-brand whitespace-nowrap">₹${item.cost.toFixed(2)}</p>
+                                        ${removeButton}
+                                    </div>
+                                </div>
+                                ${sharerUI_HTML}
+                            </div>`;
                 }).join('');
             }
+
             function renderBillDetails() { if (document.activeElement !== totalBillInput) totalBillInput.value = AppState.totalBill || ''; if (document.activeElement !== discountValueInput) discountValueInput.value = AppState.discountValue || ''; if (document.activeElement !== discountTypeSelect) discountTypeSelect.value = AppState.discountType; }
             function applyPermissions() {
                 const currentUserName = sessionStorage.getItem('currentUserName');
@@ -411,116 +450,20 @@ const firebaseConfig = {
                 permissionStatus.textContent = canEdit ? (isHost ? 'You are the Host' : 'Editing is enabled') : 'View-Only Mode';
             }
             
-            // --- SESSION MANAGEMENT & NAVIGATION ---
-            function startSoloSession() {
-                AppState.mode = 'solo'; AppState.roomId = null; AppState.permissions.canEdit = true;
-                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'none';
-                resetLocalState(); applyPermissions(); showTab('manual');
-            };
-            
-            async function showCreateRoomPrompt() {
-                try {
-                    const creatorName = await showInputModal({ type: 'prompt', title: "Create a Room", message: "First, what's your name?", placeholder: "Enter your name", okText: "Next" });
-                    if (!creatorName || !creatorName.trim()) return;
-
-                    const roomName = await showInputModal({ type: 'prompt', title: "Name Your Room", message: `Great, ${creatorName}! What should the room be called?`, placeholder: "e.g., Goa Trip", okText: "Create" });
-                    if (!roomName || !roomName.trim()) return;
-
-                    const allowEdits = await showInputModal({ 
-                        type: 'confirm', 
-                        title: "Set Permissions", 
-                        message: "Allow other participants to add/remove items?", 
-                        yesText: "Allow Editing", 
-                        noText: "Don't Allow Editing" 
-                    });
-                    
-                    createRoom(roomName.trim(), creatorName.trim(), allowEdits);
-                } catch (error) { 
-                    console.log("Room creation cancelled by user."); 
-                }
-            };
-
-            async function showJoinRoomPrompt() {
-                try {
-                    const joinerName = await showInputModal({ type: 'prompt', title: "Join a Room", message: "What's your name?", placeholder: "Enter your name", okText: "Next" });
-                    if (!joinerName || !joinerName.trim()) return;
-                    
-                    const roomId = await showInputModal({ type: 'prompt', title: "Enter Room Code", message: "Please enter the 6-character room code.", placeholder: "ABCDEF", okText: "Join" });
-                    if (roomId && roomId.trim()) joinRoom(roomId.trim().toUpperCase(), joinerName.trim());
-                } catch (error) { console.log("Join room cancelled."); }
-            };
-
-            function leaveRoom() {
-                if (AppState.mode === 'room' && AppState.roomId) {
-                    const currentUserName = sessionStorage.getItem('currentUserName');
-                    const { db, doc, updateDoc, arrayRemove } = window.firebase;
-                    const roomRef = doc(db, "rooms", AppState.roomId);
-                    updateDoc(roomRef, { friends: arrayRemove(currentUserName) });
-                }
-                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-                sessionStorage.removeItem('currentUserName');
-                appContainer.style.display = 'none'; welcomeScreen.style.display = 'block'; resetLocalState();
-            };
-            
+            function startSoloSession() { AppState.mode = 'solo'; AppState.roomId = null; AppState.permissions.canEdit = true; if (AppState.roomUnsubscribe) AppState.roomUnsubscribe(); welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'none'; resetLocalState(); applyPermissions(); showTab('manual'); };
+            async function showCreateRoomPrompt() { try { const creatorName = await showInputModal({ type: 'prompt', title: "Create a Room", message: "First, what's your name?", placeholder: "Enter your name", okText: "Next" }); if (!creatorName || !creatorName.trim()) return; const roomName = await showInputModal({ type: 'prompt', title: "Name Your Room", message: `Great, ${creatorName}! What should the room be called?`, placeholder: "e.g., Goa Trip", okText: "Create" }); if (!roomName || !roomName.trim()) return; const allowEdits = await showInputModal({ type: 'confirm', title: "Set Permissions", message: "Allow other participants to add/remove items?", yesText: "Allow Editing", noText: "Don't Allow Editing" }); createRoom(roomName.trim(), creatorName.trim(), allowEdits); } catch (error) { console.log("Room creation cancelled by user."); } };
+            async function showJoinRoomPrompt() { try { const joinerName = await showInputModal({ type: 'prompt', title: "Join a Room", message: "What's your name?", placeholder: "Enter your name", okText: "Next" }); if (!joinerName || !joinerName.trim()) return; const roomId = await showInputModal({ type: 'prompt', title: "Enter Room Code", message: "Please enter the 6-character room code.", placeholder: "ABCDEF", okText: "Join" }); if (roomId && roomId.trim()) joinRoom(roomId.trim().toUpperCase(), joinerName.trim()); } catch (error) { console.log("Join room cancelled."); } };
+            function leaveRoom() { if (AppState.mode === 'room' && AppState.roomId) { const currentUserName = sessionStorage.getItem('currentUserName'); const { db, doc, updateDoc, arrayRemove } = window.firebase; const roomRef = doc(db, "rooms", AppState.roomId); updateDoc(roomRef, { friends: arrayRemove(currentUserName) }); } if (AppState.roomUnsubscribe) AppState.roomUnsubscribe(); sessionStorage.removeItem('currentUserName'); appContainer.style.display = 'none'; welcomeScreen.style.display = 'block'; resetLocalState(); };
             function copyRoomCode() { const code = roomCodeDisplay.textContent; navigator.clipboard.writeText(code).then(() => showAlert(`Room Code "${code}" copied!`)).catch(() => showAlert('Failed to copy code.')); }
             function resetLocalState() { AppState = { ...AppState, friends: [], items: [], totalBill: 0, discountValue: 0, discountType: 'amount' }; renderAll(); }
 
-            // --- FIRESTORE INTERACTION ---
-            async function createRoom(roomName, creatorName, allowEdits) {
-                 if (!window.firebase) { showAlert('Database connection not available.'); return; }
-                 const { db, doc, setDoc, serverTimestamp } = window.firebase;
-                 const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                 const roomRef = doc(db, "rooms", roomId);
-                 showModal('loadingModal');
-                 try {
-                     await setDoc(roomRef, { roomName, createdAt: serverTimestamp(), friends: [creatorName], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', permissions: { canEdit: allowEdits } });
-                     sessionStorage.setItem('currentUserName', creatorName);
-                     startListeningToRoom(roomId);
-                     showTab('manual');
-                 } catch(error) { console.error("Error creating room: ", error); showAlert("Could not create room."); closeModal('loadingModal'); }
-            }
-            async function joinRoom(roomId, joinerName) {
-                if (!window.firebase) { showAlert('Database connection not available.'); return; }
-                const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase;
-                const roomRef = doc(db, "rooms", roomId);
-                showModal('loadingModal');
-                try {
-                    const docSnap = await getDoc(roomRef);
-                    if (!docSnap.exists()) throw new Error("Room not found.");
-                    const roomData = docSnap.data();
-                    if (roomData.friends && roomData.friends.includes(joinerName)) { showAlert(`A user named "${joinerName}" is already in this room. Please use a different name.`); closeModal('loadingModal'); return; }
-                    await updateDoc(roomRef, { friends: arrayUnion(joinerName) });
-                    sessionStorage.setItem('currentUserName', joinerName);
-                    startListeningToRoom(roomId);
-                    showTab('manual');
-                } catch(error) { console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal'); }
-            }
-            
-            // CORRECTED FUNCTION
-            function startListeningToRoom(roomId) {
-                const { db, doc, onSnapshot } = window.firebase;
-                const roomRef = doc(db, "rooms", roomId);
-                if (AppState.roomUnsubscribe) AppState.roomUnsubscribe();
-                AppState.mode = 'room'; AppState.roomId = roomId;
-                AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => {
-                    const data = doc.data();
-                    if (data) {
-                        AppState = { ...AppState, ...data }; renderAll();
-                        roomNameDisplay.textContent = data.roomName;
-                        currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`;
-                    } else { showAlert("The host may have closed the room."); leaveRoom(); }
-                }, (error) => { console.error("Snapshot listener error:", error); showAlert("Lost connection to the room."); leaveRoom(); });
-                
-                roomCodeDisplay.textContent = roomId; // THIS LINE WAS MISSING
-                
-                closeModal('loadingModal');
-                welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'flex';
-            }
-
+            async function createRoom(roomName, creatorName, allowEdits) { if (!window.firebase) { showAlert('Database connection not available.'); return; } const { db, doc, setDoc, serverTimestamp } = window.firebase; const roomId = Math.random().toString(36).substring(2, 8).toUpperCase(); const roomRef = doc(db, "rooms", roomId); showModal('loadingModal'); try { await setDoc(roomRef, { roomName, createdAt: serverTimestamp(), friends: [creatorName], items: [], totalBill: 0, discountValue: 0, discountType: 'amount', permissions: { canEdit: allowEdits } }); sessionStorage.setItem('currentUserName', creatorName); startListeningToRoom(roomId); showTab('manual'); } catch(error) { console.error("Error creating room: ", error); showAlert("Could not create room."); closeModal('loadingModal'); } }
+            async function joinRoom(roomId, joinerName) { if (!window.firebase) { showAlert('Database connection not available.'); return; } const { db, doc, getDoc, updateDoc, arrayUnion } = window.firebase; const roomRef = doc(db, "rooms", roomId); showModal('loadingModal'); try { const docSnap = await getDoc(roomRef); if (!docSnap.exists()) throw new Error("Room not found."); const roomData = docSnap.data(); if (roomData.friends && roomData.friends.includes(joinerName)) { showAlert(`A user named "${joinerName}" is already in this room. Please use a different name.`); closeModal('loadingModal'); return; } await updateDoc(roomRef, { friends: arrayUnion(joinerName) }); sessionStorage.setItem('currentUserName', joinerName); startListeningToRoom(roomId); showTab('manual'); } catch(error) { console.error("Error joining room: ", error); showAlert(error.message); closeModal('loadingModal'); } }
+            function startListeningToRoom(roomId) { const { db, doc, onSnapshot } = window.firebase; const roomRef = doc(db, "rooms", roomId); if (AppState.roomUnsubscribe) AppState.roomUnsubscribe(); AppState.mode = 'room'; AppState.roomId = roomId; AppState.roomUnsubscribe = onSnapshot(roomRef, (doc) => { const data = doc.data(); if (data) { AppState = { ...AppState, ...data }; renderAll(); roomNameDisplay.textContent = data.roomName; currentUserDisplay.textContent = `You are: ${sessionStorage.getItem('currentUserName')}`; } else { showAlert("The host may have closed the room."); leaveRoom(); } }, (error) => { console.error("Snapshot listener error:", error); showAlert("Lost connection to the room."); leaveRoom(); }); roomCodeDisplay.textContent = roomId; closeModal('loadingModal'); welcomeScreen.style.display = 'none'; appContainer.style.display = 'block'; roomInfoBar.style.display = 'flex'; }
             async function updateFirestore(newData) { if (AppState.mode !== 'room' || !AppState.roomId) return; const { db, doc, updateDoc } = window.firebase; const roomRef = doc(db, "rooms", AppState.roomId); try { await updateDoc(roomRef, newData); } catch (error) { console.error("Error updating Firestore:", error); showAlert("Could not sync changes."); } }
             
             // --- CORE LOGIC FUNCTIONS ---
+            function toggleSharer(itemIndex, friendName) { const newItems = JSON.parse(JSON.stringify(AppState.items)); const sharers = newItems[itemIndex].sharers; const isFriendSharing = sharers.includes(friendName); if (isFriendSharing) { const userIndex = sharers.indexOf(friendName); if (userIndex > -1) sharers.splice(userIndex, 1); } else { sharers.push(friendName); } if (AppState.mode === 'room') { updateFirestore({ items: newItems }); } else { AppState.items = newItems; renderItemsList(); } }
             function addFriend() { const name = friendNameInput.value.trim(); if (!name) return; if (AppState.friends.includes(name)) { showAlert(`"${name}" is already in the group.`); return; } if (AppState.mode === 'room') updateFirestore({ friends: window.firebase.arrayUnion(name) }); else { AppState.friends.push(name); renderAll(); } friendNameInput.value = ""; };
             function removeFriend(index) { const friendToRemove = AppState.friends[index]; const newFriends = AppState.friends.filter((_, i) => i !== index); const newItems = AppState.items.map(item => ({...item, sharers: item.sharers.filter(s => s !== friendToRemove) })); if (AppState.mode === 'room') updateFirestore({ friends: newFriends, items: newItems }); else { AppState.friends = newFriends; AppState.items = newItems; renderAll(); } };
             function addItemManually() { const name = document.getElementById('itemNameInput').value.trim(); const cost = parseFloat(document.getElementById('itemCostInput').value); if (!name || isNaN(cost) || cost < 0) { showAlert("Please enter a valid item name and cost."); return; } const newItem = { name, cost, sharers: [] }; if (AppState.mode === 'room') updateFirestore({ items: window.firebase.arrayUnion(newItem) }); else { AppState.items.push(newItem); renderItemsList(); } document.getElementById('itemNameInput').value = ""; document.getElementById('itemCostInput').value = ""; };
@@ -528,17 +471,65 @@ const firebaseConfig = {
             function toggleMyShare(itemIndex) { const currentUserName = sessionStorage.getItem('currentUserName'); if (!currentUserName || AppState.mode !== 'room') return; const newItems = JSON.parse(JSON.stringify(AppState.items)); const sharers = newItems[itemIndex].sharers; const isUserSharing = sharers.includes(currentUserName); if (isUserSharing) { const userIndex = sharers.indexOf(currentUserName); if (userIndex > -1) sharers.splice(userIndex, 1); } else { sharers.push(currentUserName); } updateFirestore({ items: newItems }); }
             function updateBillDetails() { const newTotalBill = parseFloat(totalBillInput.value) || 0; const newDiscountValue = parseFloat(discountValueInput.value) || 0; const newDiscountType = discountTypeSelect.value; const payload = { totalBill: newTotalBill, discountValue: newDiscountValue, discountType: newDiscountType }; if (AppState.mode === 'room') { if (window.billUpdateTimeout) clearTimeout(window.billUpdateTimeout); window.billUpdateTimeout = setTimeout(() => updateFirestore(payload), 800); } else { AppState = {...AppState, ...payload }; } };
             
-            // --- OCR FUNCTIONS ---
             async function processBillImageWithOpenAI() { const openAiApiKey = openAiApiKeyInput.value.trim(); if (!openAiApiKey) { showAlert("Please enter your OpenAI API Key."); return; } if (!billImageInput.files[0]) { showAlert("Please select an image file first."); return; } showModal('loadingModal'); processBillBtn.disabled = true; const reader = new FileReader(); reader.onloadend = async function() { const base64ImageDataWithPrefix = reader.result; const apiUrl = "https://api.openai.com/v1/chat/completions"; const prompt = `Analyze this receipt. Extract all purchased items and tax amounts (like GST, VAT, Service Charge, etc.) along with their corresponding costs. For each identified entry, return it in the format "ITEM_NAME - COST". List each item on a new line. Do not include any introductory text, summary, or explanations. If no items or costs are identifiable, respond ONLY with the text "NO_ITEMS_EXTRACTED".`; const payload = { model: "gpt-4o", messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: base64ImageDataWithPrefix, detail: "high" }}] }], max_tokens: 1000 }; try { const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey}` }, body: JSON.stringify(payload) }); if (!response.ok) { const d = await response.json(); throw new Error(d.error.message || `HTTP Error ${response.status}`); } const result = await response.json(); const extractedText = result.choices[0].message.content.trim(); parseAndAddExtractedItemsToMainList(extractedText); } catch (error) { showAlert(`OpenAI Error: ${error.message}`); } finally { closeModal('loadingModal'); updateProcessButtonState(); } }; reader.readAsDataURL(billImageInput.files[0]); }
             function parseAndAddExtractedItemsToMainList(text) { if (text.includes("NO_ITEMS_EXTRACTED")) { showAlert("No identifiable items were extracted from the bill. Please try again or add manually."); return; } const lines = text.split('\n'); const itemRegex = /^(.*?)\s*-\s*(\d+(\.\d{1,2})?)$/; let newItemsFromOCR = []; lines.forEach(line => { const match = line.trim().match(itemRegex); if (match) { const name = match[1].trim().replace(/^[^a-zA-Z0-9(]+|[^a-zA-Z0-9)]+$/g, "").trim(); const cost = parseFloat(match[2]); if (name && !isNaN(cost) && cost >= 0) { newItemsFromOCR.push({ name, cost, sharers: [] }); } } }); if (newItemsFromOCR.length > 0) { const combinedItems = [...AppState.items, ...newItemsFromOCR]; if (AppState.mode === 'room') { updateFirestore({ items: combinedItems }); } else { AppState.items = combinedItems; renderItemsList(); } showAlert(`Successfully added ${newItemsFromOCR.length} items from the bill!`); } else { showAlert("Could not parse any items from the OCR result. Please check the bill image or add items manually."); } }
             
-            // --- CALCULATE & SHARE ---
-            function calculateSplit() { if (AppState.friends.length === 0) { showAlert("Please add friends to the group first."); return; } if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; } let individualOwes = {}; AppState.friends.forEach(f => individualOwes[f] = 0); let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0); AppState.items.forEach(item => { if (item.sharers.length > 0) { const costPerSharer = item.cost / item.sharers.length; item.sharers.forEach(sharer => { if (individualOwes.hasOwnProperty(sharer)) individualOwes[sharer] += costPerSharer; }); } }); let totalDiscountAmount = 0; if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) { totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue; if (totalDiscountAmount > originalTotalItemizedCost) totalDiscountAmount = originalTotalItemizedCost; } let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount; if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) { AppState.friends.forEach(friend => { const originalShare = individualOwes[friend]; if (originalShare > 0) { const proportionOfTotal = originalShare / originalTotalItemizedCost; const discountForFriend = totalDiscountAmount * proportionOfTotal; individualOwes[friend] = Math.max(0, originalShare - discountForFriend); } }); } individualSplitsDisplay.innerHTML = AppState.friends.map(friend => `<div class="flex justify-between items-center p-3 bg-surface-background rounded-lg"><span class="font-medium">${friend.replace(/</g, "&lt;")}</span> <span class="font-bold text-green-600">owes ₹${(individualOwes[friend] || 0).toFixed(2)}</span></div>`).join(''); originalItemizedCostText.textContent = `Itemized Total: ₹${originalTotalItemizedCost.toFixed(2)}`; discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none'; discountAppliedText.textContent = `Discount: -₹${totalDiscountAmount.toFixed(2)}`; finalItemizedCostText.textContent = `Final Item Cost: ₹${finalTotalItemizedCost.toFixed(2)}`; const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost; unaccountedMoneyText.textContent = unaccountedMoney.toFixed(2) == 0.00 ? 'The bill is perfectly balanced!' : unaccountedMoney > 0 ? `Unaccounted (Tip/Surplus): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`; unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney > 0 ? 'text-green-600' : unaccountedMoney < 0 ? 'text-error' : 'text-text-medium'}`; resultsSection.style.display = 'block'; resultsSection.scrollIntoView({ behavior: 'smooth' }); }
+            // --- MODIFIED calculateSplit FUNCTION with ENHANCED ANIMATION ---
+            function calculateSplit() {
+                if (AppState.friends.length === 0) { showAlert("Please add friends to the group first."); return; }
+                if (AppState.items.length === 0) { showAlert("Add at least one item to split."); return; }
+
+                const loadingModal = document.getElementById('loadingModal');
+                loadingModal.classList.add('is-splitting');
+                showModal('loadingModal');
+
+                setTimeout(() => {
+                    let individualOwes = {};
+                    AppState.friends.forEach(f => individualOwes[f] = 0);
+                    let originalTotalItemizedCost = AppState.items.reduce((sum, item) => sum + item.cost, 0);
+                    AppState.items.forEach(item => {
+                        if (item.sharers.length > 0) {
+                            const costPerSharer = item.cost / item.sharers.length;
+                            item.sharers.forEach(sharer => {
+                                if (individualOwes.hasOwnProperty(sharer)) { individualOwes[sharer] += costPerSharer; }
+                            });
+                        }
+                    });
+                    let totalDiscountAmount = 0;
+                    if (AppState.discountValue > 0 && originalTotalItemizedCost > 0) {
+                        totalDiscountAmount = AppState.discountType === 'percentage' ? (originalTotalItemizedCost * AppState.discountValue) / 100 : AppState.discountValue;
+                        if (totalDiscountAmount > originalTotalItemizedCost) { totalDiscountAmount = originalTotalItemizedCost; }
+                    }
+                    let finalTotalItemizedCost = originalTotalItemizedCost - totalDiscountAmount;
+                    if (originalTotalItemizedCost > 0 && totalDiscountAmount > 0) {
+                        AppState.friends.forEach(friend => {
+                            const originalShare = individualOwes[friend];
+                            if (originalShare > 0) {
+                                const proportionOfTotal = originalShare / originalTotalItemizedCost;
+                                const discountForFriend = totalDiscountAmount * proportionOfTotal;
+                                individualOwes[friend] = Math.max(0, originalShare - discountForFriend);
+                            }
+                        });
+                    }
+                    individualSplitsDisplay.innerHTML = AppState.friends.map(friend => `<div class="flex justify-between items-center p-3 bg-surface-background rounded-lg"><span class="font-medium">${friend.replace(/</g, "&lt;")}</span> <span class="font-bold text-green-600">owes ₹${(individualOwes[friend] || 0).toFixed(2)}</span></div>`).join('');
+                    originalItemizedCostText.textContent = `Itemized Total: ₹${originalTotalItemizedCost.toFixed(2)}`;
+                    discountAppliedText.style.display = totalDiscountAmount > 0 ? 'block' : 'none';
+                    discountAppliedText.textContent = `Discount: -₹${totalDiscountAmount.toFixed(2)}`;
+                    finalItemizedCostText.textContent = `Final Item Cost: ₹${finalTotalItemizedCost.toFixed(2)}`;
+                    const unaccountedMoney = AppState.totalBill - finalTotalItemizedCost;
+                    unaccountedMoneyText.textContent = unaccountedMoney.toFixed(2) == 0.00 ? 'The bill is perfectly balanced!' : unaccountedMoney > 0 ? `Unaccounted (Tip/Surplus): ₹${unaccountedMoney.toFixed(2)}` : `Shortfall: ₹${Math.abs(unaccountedMoney).toFixed(2)}`;
+                    unaccountedMoneyText.className = `text-lg font-bold mt-1 ${unaccountedMoney > 0 ? 'text-green-600' : unaccountedMoney < 0 ? 'text-error' : 'text-text-medium'}`;
+                    resultsSection.style.display = 'block';
+                    
+                    closeModal('loadingModal');
+                    loadingModal.classList.remove('is-splitting');
+                    resultsSection.scrollIntoView({ behavior: 'smooth' });
+                }, 1600); // Guarantees one full animation cycle
+            }
+
             async function generateAndShowImage() { if (resultsSection.style.display === 'none') { showAlert("Calculate split first."); return; } const resultsToCapture = document.getElementById('resultsToCapture'); const originalBg = resultsToCapture.style.backgroundColor; resultsToCapture.style.backgroundColor = '#E8DEFC'; try { const canvas = await html2canvas(resultsToCapture, { scale: 2, useCORS: true, logging: false }); resultsToCapture.style.backgroundColor = originalBg; const imageDataUrl = canvas.toDataURL('image/png'); document.getElementById('generatedImagePreview').src = imageDataUrl; document.getElementById('downloadImageBtn').onclick = () => { const link = document.createElement('a'); link.download = 'expense_split.png'; link.href = imageDataUrl; link.click(); }; showModal('imagePreviewModal'); } catch (error) { console.error("Image gen error:", error); showAlert("Error generating image."); resultsToCapture.style.backgroundColor = originalBg; } }
-            
             function showTab(tabName) { [manualTabBtn, ocrTabBtn].forEach(b => b.classList.remove('active')); [manualItemContent, ocrContent].forEach(c => c.classList.add('hidden')); if (tabName === 'manual') { manualTabBtn.classList.add('active'); manualItemContent.classList.remove('hidden'); } else { ocrTabBtn.classList.add('active'); ocrContent.classList.remove('hidden'); } }
             
-            // --- EVENT LISTENERS ---
             function updateProcessButtonState() { const canEdit = AppState.permissions.canEdit || (AppState.mode === 'room' && AppState.friends.length > 0 && sessionStorage.getItem('currentUserName') === AppState.friends[0]) || AppState.mode === 'solo'; if (!canEdit) { processBillBtn.disabled = true; return; } processBillBtn.disabled = !openAiApiKeyInput.value.trim() || !billImageInput.files[0]; }
             billImageInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { billImagePreview.src = e.target.result; billImagePreview.style.display = 'block'; }; reader.readAsDataURL(file); } else { billImagePreview.style.display = 'none'; } updateProcessButtonState(); });
             openAiApiKeyInput.addEventListener('input', updateProcessButtonState);
@@ -553,7 +544,8 @@ const firebaseConfig = {
             document.getElementById('generateImageBtn').addEventListener('click', generateAndShowImage);
             manualTabBtn.addEventListener('click', () => showTab('manual'));
             ocrTabBtn.addEventListener('click', () => showTab('ocr'));
-            Object.assign(window, { leaveRoom, copyRoomCode, removeFriend, removeItemFromSplit, toggleMyShare });
+
+            Object.assign(window, { leaveRoom, copyRoomCode, removeFriend, removeItemFromSplit, toggleMyShare, toggleSharer });
             
             renderAll();
             showTab('manual'); 
